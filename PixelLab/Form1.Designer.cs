@@ -49,10 +49,13 @@
             chkC3 = new CheckBox();
             chkC4 = new CheckBox();
             pictureBoxSpace = new PictureBox();
+            // ElementHost for WPF 3D control
+            elementHost = new System.Windows.Forms.Integration.ElementHost();
             trackZoom = new TrackBar();
             trackRotate = new TrackBar();
             lblSpaceInfo = new Label();
             panelSelectedColor = new Panel();
+            cmbViewMode = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackC1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackC2).BeginInit();
@@ -99,6 +102,14 @@
             cmbColorMode.Name = "cmbColorMode";
             cmbColorMode.Size = new Size(201, 28);
             cmbColorMode.TabIndex = 6;
+            // 
+            // cmbViewMode
+            // 
+            cmbViewMode.FormattingEnabled = true;
+            cmbViewMode.Location = new Point(900, 41);
+            cmbViewMode.Name = "cmbViewMode";
+            cmbViewMode.Size = new Size(120, 28);
+            cmbViewMode.TabIndex = 7;
             // 
             // lblC1
             // 
@@ -250,6 +261,14 @@
             pictureBoxSpace.TabIndex = 23;
             pictureBoxSpace.TabStop = false;
             // 
+            // elementHost
+            // 
+            elementHost.Location = new Point(33, 418);
+            elementHost.Name = "elementHost";
+            elementHost.Size = new Size(206, 166);
+            elementHost.TabIndex = 24;
+            elementHost.Text = "elementHost";
+            // 
             // trackZoom
             // 
             trackZoom.Location = new Point(791, 449);
@@ -295,6 +314,7 @@
             Controls.Add(trackRotate);
             Controls.Add(trackZoom);
             Controls.Add(pictureBoxSpace);
+            Controls.Add(elementHost);
             Controls.Add(chkC4);
             Controls.Add(chkC3);
             Controls.Add(chkC2);
@@ -315,6 +335,9 @@
             Controls.Add(lblColorInfo);
             Controls.Add(btnOpen);
             Controls.Add(pictureBox1);
+            Controls.Add(pictureBoxSpace);
+            Controls.Add(elementHost);
+            Controls.Add(cmbViewMode);
             Name = "Form1";
             Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
@@ -352,9 +375,11 @@
         private CheckBox chkC3;
         private CheckBox chkC4;
         private PictureBox pictureBoxSpace;
+        private System.Windows.Forms.Integration.ElementHost elementHost;
         private TrackBar trackZoom;
         private TrackBar trackRotate;
         private Label lblSpaceInfo;
         private Panel panelSelectedColor;
+        private ComboBox cmbViewMode;
     }
 }
