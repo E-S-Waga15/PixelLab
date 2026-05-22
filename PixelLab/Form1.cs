@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
+using System.Drawing.Imaging;
 
 namespace PixelLab
 {
@@ -28,6 +29,18 @@ namespace PixelLab
             cmbViewMode.Items.AddRange(new object[] { "2D", "3D" });
             cmbViewMode.SelectedIndexChanged += cmbViewMode_SelectedIndexChanged;
             cmbViewMode.SelectedIndex = 0;
+
+            // Initialize quantization controls
+            if (cmbQuantColors != null)
+            {
+                // values already added in Designer; ensure event wiring
+                cmbQuantColors.SelectedIndexChanged += (s, e) => ApplySelectedColorMode(s, e);
+            }
+            if (chkQuantizeEnable != null)
+            {
+                chkQuantizeEnable.CheckedChanged += (s, e) => ApplySelectedColorMode(s, e);
+                chkQuantizeEnable.Checked = true; // default ON
+            }
 
             // تهيئة عنصر WPF والـ Host (تأكد أن الاسم مطابق لما هو موجود في الـ Designer)
             colorSpace3D = new PixelLab.Controls.ColorSpace3DControl();
@@ -121,7 +134,99 @@ namespace PixelLab
             editedImage = new Bitmap(originalImage);
             pictureBox1.Image = editedImage;
             ResetTracks();
+            UpdateImageInfo(); // update the properties panel after loading
         }
+
+        // ----- New method: UpdateImageInfo (Request #8) -----
+        private void UpdateImageInfo()
+        {
+            if (pictureBox1?.Image != null)
+            {
+                string formatName = GetImageFormatName(pictureBox1.Image);
+                lblImageProperties.Text = $"الأبعاد: {pictureBox1.Image.Width}x{pictureBox1.Image.Height} بكسل\r\n" +
+                                          $"الصيغة: {formatName}\r\n" +
+                                          $"الحالة: تم تحميل الصورة";
+            }
+            else
+            {
+                lblImageProperties.Text = "No image loaded";
+            }
+        }
+
+        private string GetImageFormatName(Image img)
+        {
+            try
+            {
+                if (img.RawFormat.Equals(ImageFormat.Jpeg)) return "JPEG";
+                if (img.RawFormat.Equals(ImageFormat.Png)) return "PNG";
+                if (img.RawFormat.Equals(ImageFormat.Bmp)) return "BMP";
+                if (img.RawFormat.Equals(ImageFormat.Gif)) return "GIF";
+                if (img.RawFormat.Equals(ImageFormat.Tiff)) return "TIFF";
+                return "Unknown";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        // ----- New method: btnReset_Click (Request #9) -----
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            // 1. Restore original image
+            if (originalImage != null)
+            {
+                try { editedImage?.Dispose(); } catch { }
+                editedImage = new Bitmap(originalImage);
+                pictureBox1.Image = editedImage;
+            }
+
+            // 2. Reset UI controls (Zoom/Rotate and color tracks)
+            if (trackZoom != null) trackZoom.Value = 100;
+            if (trackRotate != null) trackRotate.Value = 0;
+            ResetTracks();
+
+            // 3. Update image info display
+            UpdateImageInfo();
+        }
+        private void btnSave_Click(object sender, EventArgs e)
+        {
+            if (pictureBox1.Image == null)
+            {
+                MessageBox.Show("لا توجد صورة لحفظها!");
+                return;
+            }
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "PNG Image|*.png|JPEG Image|*.jpg|Bitmap Image|*.bmp";
+            saveFileDialog.Title = "حفظ الصورة";
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    System.Drawing.Imaging.ImageFormat format = System.Drawing.Imaging.ImageFormat.Png;
+                    string extension = System.IO.Path.GetExtension(saveFileDialog.FileName).ToLower();
+
+                    switch (extension)
+                    {
+                        case ".jpg": format = System.Drawing.Imaging.ImageFormat.Jpeg; break;
+                        case ".bmp": format = System.Drawing.Imaging.ImageFormat.Bmp; break;
+                    }
+
+                    pictureBox1.Image.Save(saveFileDialog.FileName, format);
+                    MessageBox.Show("تم حفظ الصورة بنجاح!");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("حدث خطأ أثناء الحفظ: " + ex.Message);
+                }
+            }
+        }
+
+
+
+
 
         private void cmbColorMode_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -251,7 +356,99 @@ namespace PixelLab
                 }
             }
 
-            pictureBox1.Image = editedImage;
+            // Apply quantization if enabled
+            if (chkQuantizeEnable != null && chkQuantizeEnable.Checked && cmbQuantColors != null && cmbQuantColors.SelectedItem != null)
+            {
+                if (int.TryParse(cmbQuantColors.SelectedItem.ToString(), out int colorCount) && colorCount >= 2)
+                {
+                    Bitmap quant = ApplyColorQuantization(editedImage, colorCount);
+                    // dispose previous editedImage to avoid leaks
+                    try { editedImage.Dispose(); } catch { }
+                    editedImage = quant;
+                    pictureBox1.Image = editedImage;
+                }
+                else
+                {
+                    pictureBox1.Image = editedImage;
+                }
+            }
+            else
+            {
+                pictureBox1.Image = editedImage;
+            }
+        }
+
+        /// <summary>
+        /// Fast uniform color quantization using LockBits.
+        /// Reduces total number of colors to <= colorCount using equal partitioning of RGB cube.
+        /// </summary>
+        /// <param name="sourceImage">source bitmap</param>
+        /// <param name="colorCount">desired approximate total color count (e.g. 2..256)</param>
+        /// <returns>new quantized Bitmap (Format32bppArgb)</returns>
+        private Bitmap ApplyColorQuantization(Bitmap sourceImage, int colorCount)
+        {
+            if (sourceImage == null) return null;
+            colorCount = Math.Max(2, Math.Min(256, colorCount));
+
+            // Work in 32bpp ARGB for simplicity and speed
+            Bitmap bmp = new Bitmap(sourceImage.Width, sourceImage.Height, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.DrawImage(sourceImage, 0, 0, sourceImage.Width, sourceImage.Height);
+            }
+
+            BitmapData bd = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height),
+                                         ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            int bytes = Math.Abs(bd.Stride) * bmp.Height;
+            byte[] pixels = new byte[bytes];
+            System.Runtime.InteropServices.Marshal.Copy(bd.Scan0, pixels, 0, bytes);
+
+            // Determine number of levels per channel (uniform) such that levels^3 <= colorCount
+            int levels = Math.Max(2, (int)Math.Round(Math.Pow(colorCount, 1.0 / 3.0)));
+            while (Math.Pow(levels, 3) > colorCount && levels > 2) levels--;
+
+            // Precompute centers for each level
+            int[] centers = new int[levels];
+            for (int i = 0; i < levels; i++)
+            {
+                // center placed in the middle of each bin
+                centers[i] = (int)(((i + 0.5) * 256.0) / levels);
+                if (centers[i] < 0) centers[i] = 0;
+                if (centers[i] > 255) centers[i] = 255;
+            }
+
+            // For performance, create a small lookup table mapping original value (0..255) -> quantized value
+            byte[] lut = new byte[256];
+            for (int v = 0; v < 256; v++)
+            {
+                // find nearest center
+                int idx = (int)((v * levels) / 256.0);
+                if (idx < 0) idx = 0;
+                if (idx >= levels) idx = levels - 1;
+                lut[v] = (byte)centers[idx];
+            }
+
+            // pixels in Format32bppArgb: B, G, R, A
+            int stride = bd.Stride;
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                int row = y * stride;
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    int i = row + x * 4;
+                    byte b = pixels[i + 0];
+                    byte g = pixels[i + 1];
+                    byte r = pixels[i + 2];
+                    // alpha left unchanged
+                    pixels[i + 0] = lut[b];
+                    pixels[i + 1] = lut[g];
+                    pixels[i + 2] = lut[r];
+                }
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bd.Scan0, bytes);
+            bmp.UnlockBits(bd);
+            return bmp;
         }
 
         private void PictureBox1_MouseClick(object sender, MouseEventArgs e)

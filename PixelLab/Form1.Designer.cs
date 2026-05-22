@@ -56,6 +56,15 @@
             lblSpaceInfo = new Label();
             panelSelectedColor = new Panel();
             cmbViewMode = new ComboBox();
+            // NEW: quantization controls
+            cmbQuantColors = new ComboBox();
+            chkQuantizeEnable = new CheckBox();
+
+            // NEW controls: Reset and properties
+            btnReset = new Button();
+            groupBoxImageProperties = new GroupBox();
+            lblImageProperties = new Label();
+
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackC1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackC2).BeginInit();
@@ -85,6 +94,45 @@
             btnOpen.Text = "Open Image";
             btnOpen.UseVisualStyleBackColor = true;
             btnOpen.Click += btnOpen_Click;
+            // 
+            // btnReset (NEW)
+            // 
+            btnReset.Location = new Point(157, 292);
+            btnReset.Name = "btnReset";
+            btnReset.Size = new Size(117, 29);
+            btnReset.TabIndex = 2;
+            btnReset.Text = "Reset";
+            btnReset.UseVisualStyleBackColor = true;
+            btnReset.Click += btnReset_Click;
+
+
+            btnSave = new Button();
+            btnSave.Location = new Point(12, 330); // اضبط الموقع حسب ما يناسبك
+            btnSave.Name = "btnSave";
+            btnSave.Size = new Size(139, 29);
+            btnSave.Text = "Save Image";
+            btnSave.UseVisualStyleBackColor = true;
+            btnSave.Click += btnSave_Click; // ربط حدث الضغط
+
+            // تأكد من إضافته للنموذج
+            // 
+            // groupBoxImageProperties (NEW)
+            // 
+            groupBoxImageProperties.Location = new Point(316, 12);
+            groupBoxImageProperties.Name = "groupBoxImageProperties";
+            groupBoxImageProperties.Size = new Size(240, 60);
+            groupBoxImageProperties.TabIndex = 30;
+            groupBoxImageProperties.TabStop = false;
+            groupBoxImageProperties.Text = "Image Properties";
+            // 
+            // lblImageProperties (NEW)
+            // 
+            lblImageProperties.Location = new Point(6, 22);
+            lblImageProperties.Name = "lblImageProperties";
+            lblImageProperties.Size = new Size(228, 32);
+            lblImageProperties.AutoSize = false; // ensure it fills the groupbox
+            lblImageProperties.Text = "No image loaded";
+            groupBoxImageProperties.Controls.Add(lblImageProperties);
             // 
             // lblColorInfo
             // 
@@ -303,12 +351,36 @@
             panelSelectedColor.Size = new Size(73, 51);
             panelSelectedColor.TabIndex = 27;
             // 
+            // NEW: cmbQuantColors
+            // 
+            cmbQuantColors.FormattingEnabled = true;
+            cmbQuantColors.Location = new Point(316, 292);
+            cmbQuantColors.Name = "cmbQuantColors";
+            cmbQuantColors.Size = new Size(120, 28);
+            cmbQuantColors.TabIndex = 28;
+            cmbQuantColors.Items.AddRange(new object[] { "2", "4", "8", "16", "32", "64", "128", "256" });
+            cmbQuantColors.SelectedIndex = 7; // default 256
+            // 
+            // NEW: chkQuantizeEnable
+            // 
+            chkQuantizeEnable.AutoSize = true;
+            chkQuantizeEnable.Location = new Point(460, 295);
+            chkQuantizeEnable.Name = "chkQuantizeEnable";
+            chkQuantizeEnable.Size = new Size(80, 24);
+            chkQuantizeEnable.TabIndex = 29;
+            chkQuantizeEnable.Text = "Quantize";
+            chkQuantizeEnable.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.GhostWhite;
             ClientSize = new Size(1168, 630);
+
+            // Add controls (preserve existing order, include new ones)
+            Controls.Add(chkQuantizeEnable);
+            Controls.Add(cmbQuantColors);
             Controls.Add(panelSelectedColor);
             Controls.Add(lblSpaceInfo);
             Controls.Add(trackRotate);
@@ -334,7 +406,10 @@
             Controls.Add(cmbColorMode);
             Controls.Add(lblColorInfo);
             Controls.Add(btnOpen);
+            Controls.Add(btnReset);
+            Controls.Add(btnSave);// NEW
             Controls.Add(pictureBox1);
+            Controls.Add(groupBoxImageProperties); // NEW
             Controls.Add(pictureBoxSpace);
             Controls.Add(elementHost);
             Controls.Add(cmbViewMode);
@@ -381,5 +456,15 @@
         private Label lblSpaceInfo;
         private Panel panelSelectedColor;
         private ComboBox cmbViewMode;
+
+        // NEW controls
+        private ComboBox cmbQuantColors;
+        private CheckBox chkQuantizeEnable;
+
+        // Added controls
+        private Button btnReset;
+        private GroupBox groupBoxImageProperties;
+        private Label lblImageProperties;
+        private Button btnSave;
     }
 }
