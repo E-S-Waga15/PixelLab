@@ -91,15 +91,21 @@
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
-
             // --- btnOpen ---
             btnOpen.FlatStyle = FlatStyle.Flat;
-            btnOpen.Font = new Font("Segoe UI", 28F, FontStyle.Bold);
+
+            // حجم 20F ممتاز جداً ليجمع بين الأيقونة والكلمة داخل زر حجمه 220x110
+            btnOpen.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point);
             btnOpen.Location = new Point(15, 48);
             btnOpen.Name = "btnOpen";
             btnOpen.Size = new Size(220, 110);
             btnOpen.TabIndex = 1;
-            btnOpen.Text = "+";
+
+            // وضع الأيقونة مع النص هنا 👇
+            btnOpen.Text = "➕ Add New";
+
+            btnOpen.TextAlign = ContentAlignment.MiddleCenter;
+            btnOpen.Padding = new Padding(0);
             btnOpen.UseVisualStyleBackColor = false;
             btnOpen.Click += btnOpen_Click;
 
@@ -125,9 +131,10 @@
             // --- lblImageProperties ---
             lblImageProperties.Dock = DockStyle.Fill;
             lblImageProperties.Font = new Font("Segoe UI", 9F);
+            lblImageProperties.Size = new Size(200, 160);
             lblImageProperties.Name = "lblImageProperties";
-            lblImageProperties.Padding = new Padding(6, 25, 6, 6);
-            lblImageProperties.Text = "No image loaded";
+            lblImageProperties.Padding = new Padding(6, 6, 6, 6);
+            lblImageProperties.Text = "\r\n \r\n \r\n No image loaded";
 
             // --- lblColorInfo (bottom panel — selected color details) ---
             lblColorInfoTitle.AutoSize = false;

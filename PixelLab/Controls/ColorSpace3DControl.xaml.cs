@@ -66,7 +66,7 @@ namespace PixelLab.Controls
                 BuildSolidRgbCube();
             }
 
-            if (markerModel != null) spaceGroup.Children.Add(markerModel);
+            // marker is kept separate; only add it when explicitly moved/locked to a color
             try { viewport.ZoomExtents(); } catch { }
         }
 
@@ -225,9 +225,11 @@ namespace PixelLab.Controls
         {
             var mb = new MeshBuilder(true, true);
             mb.AddSphere(new Point3D(0, 0, 0), 0.045, 16, 16);
-            var markerMat = new EmissiveMaterial(new SolidColorBrush(Colors.White));
+            // Make the marker invisible by default (remove white circle)
+            var markerMat = new EmissiveMaterial(new SolidColorBrush(Colors.Transparent));
             markerModel = new GeometryModel3D(mb.ToMesh(true), markerMat);
-            spaceGroup.Children.Add(markerModel);
+            // Do not add the marker to the spaceGroup by default to avoid visual circle; it will be added when needed
+            // spaceGroup.Children.Add(markerModel);
         }
 
         // إضافة دالة الكاميرا المفقودة SetCamera لمنع أخطاء الاستدعاء في الفورم الرئيسي
@@ -270,7 +272,7 @@ namespace PixelLab.Controls
 
         private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 1
+            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2
                 && TryPickColorAt(e.GetPosition(viewport), out byte r, out byte g, out byte b))
             {
                 MoveMarkerToRgb(r, g, b);
@@ -314,6 +316,9 @@ namespace PixelLab.Controls
         public void MoveMarkerToRgb(int r, int g, int b)
         {
             if (markerModel == null) return;
+
+            if (!spaceGroup.Children.Contains(markerModel))
+                spaceGroup.Children.Add(markerModel);
 
             if (currentMode.ToUpper() == "HSV")
             {

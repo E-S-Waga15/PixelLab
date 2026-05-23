@@ -12,6 +12,8 @@ namespace PixelLab
         private Bitmap originalImage;
         private Bitmap editedImage;
         private Bitmap colorSpaceImage;
+        private string currentImageName = string.Empty;
+        private string currentImagePath = string.Empty;
         private bool isUpdatingControls = false;
         private PixelLab.Controls.ColorSpace3DControl colorSpace3D;
 
@@ -22,6 +24,7 @@ namespace PixelLab
 
             pictureBox1.AllowDrop = true;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+
 
             // تعبئة أوضاع الألوان
             cmbColorMode.Items.AddRange(new object[] { "RGB", "HSV", "CMYK", "YUV", "LAB", "YCbCr" });
@@ -96,6 +99,7 @@ namespace PixelLab
             trackRotate.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
             trackZoom.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
             pictureBoxSpace.MouseClick += PictureBoxSpace_MouseClick;
+            pictureBoxSpace.MouseDoubleClick += PictureBoxSpace_MouseDoubleClick;
             pictureBoxSpace.MouseMove += PictureBoxSpace_MouseMove;
 
             // تفعيل القنوات افتراضياً
@@ -336,6 +340,8 @@ namespace PixelLab
         {
             originalImage = new Bitmap(path);
             editedImage = new Bitmap(originalImage);
+            currentImageName = System.IO.Path.GetFileNameWithoutExtension(path);
+            currentImagePath = path;
             pictureBox1.Image = editedImage;
             ResetTracks();
             UpdateImageInfo(); // update the properties panel after loading
@@ -346,13 +352,19 @@ namespace PixelLab
         {
             if (pictureBox1?.Image != null)
             {
-                string formatName = GetImageFormatName(pictureBox1.Image);
+                string formatName = GetImageFormatName(pictureBox1.Image, currentImagePath);
+                string fileSize = GetFileSizeDisplay(currentImagePath);
                 lblImageProperties.Text =
                     "\r\n" +
+                    $"اسم الصورة: {(string.IsNullOrWhiteSpace(currentImageName) ? "Unknown" : currentImageName)}\r\n" +
+                    $"الصيغة: {formatName}\r\n" +
+                    $"الحجم: {fileSize}\r\n" +
                     $"الأبعاد: {pictureBox1.Image.Width}×{pictureBox1.Image.Height} بكسل\r\n" +
-                    $"Ppi: 96\r\n" +
+                    $"Ppi: 96 - " +
                     $"Depth: 8-bit\r\n" +
-                    $"Colorspace: {formatName} (Original)";
+                     $"Colorspace: {formatName} (Original)" 
+                    ;
+                  
             }
             else
             {
@@ -360,16 +372,42 @@ namespace PixelLab
             }
         }
 
-        private string GetImageFormatName(Image img)
+        private string GetImageFormatName(Image img, string path = "")
         {
             try
             {
-                if (img.RawFormat.Equals(ImageFormat.Jpeg)) return "JPEG";
-                if (img.RawFormat.Equals(ImageFormat.Png)) return "PNG";
-                if (img.RawFormat.Equals(ImageFormat.Bmp)) return "BMP";
-                if (img.RawFormat.Equals(ImageFormat.Gif)) return "GIF";
-                if (img.RawFormat.Equals(ImageFormat.Tiff)) return "TIFF";
+                string extension = System.IO.Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
+                return extension switch
+                {
+                    ".jpg" or ".jpeg" => "JPEG",
+                    ".png" => "PNG",
+                    ".bmp" => "BMP",
+                    ".gif" => "GIF",
+                    ".tif" or ".tiff" => "TIFF",
+                    _ => img.RawFormat.Equals(ImageFormat.Jpeg) ? "JPEG"
+                        : img.RawFormat.Equals(ImageFormat.Png) ? "PNG"
+                        : img.RawFormat.Equals(ImageFormat.Bmp) ? "BMP"
+                        : img.RawFormat.Equals(ImageFormat.Gif) ? "GIF"
+                        : img.RawFormat.Equals(ImageFormat.Tiff) ? "TIFF"
+                        : "Unknown"
+                };
+            }
+            catch
+            {
                 return "Unknown";
+            }
+        }
+
+        private string GetFileSizeDisplay(string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path)) return "Unknown";
+                long bytes = new System.IO.FileInfo(path).Length;
+                double mb = bytes / 1024.0 / 1024.0;
+                if (mb >= 1)
+                    return $"{mb:F2} MB";
+                return $"{bytes / 1024.0:F2} KB";
             }
             catch
             {
@@ -792,6 +830,54 @@ namespace PixelLab
         private double PivotRGB(double value) => value > 0.04045 ? Math.Pow((value + 0.055) / 1.055, 2.4) : value / 12.92;
         private double PivotXYZ(double value) => value > 0.008856 ? Math.Pow(value, 1.0 / 3.0) : (7.787 * value) + (16.0 / 116.0);
 
+
+        private double[] GetLABValues(Color color)
+        {
+            double r = PivotRGB(color.R / 255.0);
+            double g = PivotRGB(color.G / 255.0);
+            double b = PivotRGB(color.B / 255.0);
+            double x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+            double y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
+            double z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+            x = PivotXYZ(x); y = PivotXYZ(y); z = PivotXYZ(z);
+            double l = 116 * y - 16;
+            double a = 500 * (x - y);
+            double bb = 200 * (y - z);
+            return new double[] { l, a, bb };
+        }
+
+        // دالة التحويل العكسي (توضع هنا)
+        private Color LABtoRGB(double l, double a, double b)
+        {
+            double y = (l + 16.0) / 116.0;
+            double x = a / 500.0 + y;
+            double z = y - b / 200.0;
+            x = 0.95047 * ((Math.Pow(x, 3) > 0.008856) ? Math.Pow(x, 3) : (x - 16.0 / 116.0) / 7.787);
+            y = 1.00000 * ((Math.Pow(y, 3) > 0.008856) ? Math.Pow(y, 3) : (y - 16.0 / 116.0) / 7.787);
+            z = 1.08883 * ((Math.Pow(z, 3) > 0.008856) ? Math.Pow(z, 3) : (z - 16.0 / 116.0) / 7.787);
+            double r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+            double g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+            double bl = x * 0.0557 + y * -0.2040 + z * 1.0570;
+            r = (r > 0.0031308 ? 1.055 * Math.Pow(r, 1 / 2.4) - 0.055 : 12.92 * r) * 255;
+            g = (g > 0.0031308 ? 1.055 * Math.Pow(g, 1 / 2.4) - 0.055 : 12.92 * g) * 255;
+            bl = (bl > 0.0031308 ? 1.055 * Math.Pow(bl, 1 / 2.4) - 0.055 : 12.92 * bl) * 255;
+            return Color.FromArgb(Clamp((int)r), Clamp((int)g), Clamp((int)bl));
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         private Color ModifyHSVWithChannels(Color color, int hChange, int sChange, int vChange)
         {
             double r = color.R / 255.0; double g = color.G / 255.0; double b = color.B / 255.0;
@@ -883,11 +969,11 @@ namespace PixelLab
 
         private Color ModifyLABWithChannels(Color color, int lChange, int aChange, int bChange)
         {
-            int r = Clamp(color.R + lChange); int g = Clamp(color.G + aChange); int b = Clamp(color.B + bChange);
-            if (!chkC1.Checked) r = 0;
-            if (!chkC2.Checked) g = 0;
-            if (!chkC3.Checked) b = 0;
-            return Color.FromArgb(r, g, b);
+            double[] lab = GetLABValues(color);
+            double l = chkC1.Checked ? lab[0] + lChange : 0;
+            double a = chkC2.Checked ? lab[1] + aChange : 0;
+            double bb = chkC3.Checked ? lab[2] + bChange : 0;
+            return LABtoRGB(l, a, bb);
         }
 
         // --- رسم الفضاء اللوني ثنائي الأبعاد وتدويره ---
@@ -981,22 +1067,27 @@ namespace PixelLab
             string source = elementHost?.Visible == true ? "Color Space_3D" : "Color Space_2D";
             UpdateColorInfoLabel(Color.FromArgb(r, g, b), source);
 
-            // sync trackbars and labels (clamped to ranges)
+            // sync trackbars and labels without re-applying the color to the image
             try
             {
+                isUpdatingControls = true;
                 if (trackC1.Minimum <= r && trackC1.Maximum >= r) trackC1.Value = r;
                 if (trackC2.Minimum <= g && trackC2.Maximum >= g) trackC2.Value = g;
                 if (trackC3.Minimum <= b && trackC3.Maximum >= b) trackC3.Value = b;
-
                 lblV1.Text = r.ToString(); lblV2.Text = g.ToString(); lblV3.Text = b.ToString();
                 panelSelectedColor.BackColor = System.Drawing.Color.FromArgb(r, g, b);
             }
             catch { }
+            finally
+            {
+                isUpdatingControls = false;
+            }
         }
 
         private void ColorSpaceControl_ColorSelectedFrom3D(byte r, byte g, byte b)
         {
             SynchronizeAndDisplaySystemInfo(r, g, b);
+            ApplySelectedColorMode(null, EventArgs.Empty);
         }
 
         private void ColorSpaceControl_ColorHoveredFrom3D(byte r, byte g, byte b)
@@ -1065,7 +1156,24 @@ namespace PixelLab
                 if (x < 0 || x >= bmp.Width || y < 0 || y >= bmp.Height) return;
 
                 Color color = bmp.GetPixel(x, y);
-                UpdateColorInfoLabel(color, "الفضاء اللوني 2D", x, y);
+                UpdateColorInfoLabel(color, "Color Space_2D", x, y);
+            }
+        }
+
+        private void PictureBoxSpace_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (pictureBoxSpace.Image == null) return;
+
+            using (Bitmap bmp = new Bitmap(pictureBoxSpace.Image))
+            {
+                int x = e.X * bmp.Width / pictureBoxSpace.Width;
+                int y = e.Y * bmp.Height / pictureBoxSpace.Height;
+
+                if (x < 0 || x >= bmp.Width || y < 0 || y >= bmp.Height) return;
+
+                Color color = bmp.GetPixel(x, y);
+                SynchronizeAndDisplaySystemInfo(color.R, color.G, color.B);
+                ApplySelectedColorMode(null, EventArgs.Empty);
             }
         }
     }
