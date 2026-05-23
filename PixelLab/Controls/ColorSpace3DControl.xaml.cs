@@ -20,6 +20,7 @@ namespace PixelLab.Controls
 
         // حدث يتم إطلاقه عند النقر المزدوج على مجسم الـ 3D لاختيار اللون
         public event Action<byte, byte, byte> ColorSelectedFrom3D;
+        public event Action<byte, byte, byte>? ColorHoveredFrom3D;
 
         public ColorSpace3DControl()
         {
@@ -38,8 +39,9 @@ namespace PixelLab.Controls
             spaceGroup = new Model3DGroup();
             modelContainer.Content = spaceGroup;
 
-            // ربط حدث ضغط الماوس
             viewport.MouseDown += Viewport_MouseDown;
+            viewport.MouseMove += Viewport_MouseMove;
+            viewport.MouseLeave += (_, _) => Mouse.OverrideCursor = null;
 
             BuildSpace("RGB");
             CreateMarker();
@@ -253,49 +255,60 @@ namespace PixelLab.Controls
             }
         }
 
+        private void Viewport_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (TryPickColorAt(e.GetPosition(viewport), out byte r, out byte g, out byte b))
+            {
+                Mouse.OverrideCursor = System.Windows.Input.Cursors.Cross;
+                ColorHoveredFrom3D?.Invoke(r, g, b);
+            }
+            else
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
         private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 1)
+            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 1
+                && TryPickColorAt(e.GetPosition(viewport), out byte r, out byte g, out byte b))
             {
-                var mousePos = e.GetPosition(viewport);
-                var hits = HelixToolkit.Wpf.Viewport3DHelper.FindHits(viewport.Viewport, mousePos);
-
-                foreach (var hit in hits)
-                {
-                    var hitType = hit.GetType();
-                    var modelProp = hitType.GetProperty("Model");
-                    var modelObj = modelProp?.GetValue(hit) as Model3D;
-                    if (modelObj is GeometryModel3D geom && geom != markerModel)
-                    {
-                        var pointProp = hitType.GetProperty("PointHit") ?? hitType.GetProperty("Point") ?? hitType.GetProperty("Position");
-                        if (pointProp == null) continue;
-                        var pObj = pointProp.GetValue(hit);
-                        if (!(pObj is Point3D p)) continue;
-
-                        byte r = 0, g = 0, bVal = 0;
-
-                        if (currentMode.ToUpper() == "HSV")
-                        {
-                            double hue = Math.Atan2(p.Z, p.X) * (180.0 / Math.PI);
-                            if (hue < 0) hue += 360;
-                            double sat = Math.Min(1.0, Math.Sqrt(p.X * p.X + p.Z * p.Z) / 0.5);
-                            double val = Math.Min(1.0, Math.Max(0.0, p.Y + 0.5));
-
-                            HsvToRgb(hue, sat, val, out r, out g, out bVal);
-                        }
-                        else
-                        {
-                            r = (byte)Math.Max(0, Math.Min(255, (p.X + 0.5) * 255));
-                            g = (byte)Math.Max(0, Math.Min(255, (p.Y + 0.5) * 255));
-                            bVal = (byte)Math.Max(0, Math.Min(255, (p.Z + 0.5) * 255));
-                        }
-
-                        MoveMarkerToRgb(r, g, bVal);
-                        ColorSelectedFrom3D?.Invoke(r, g, bVal);
-                        break;
-                    }
-                }
+                MoveMarkerToRgb(r, g, b);
+                ColorSelectedFrom3D?.Invoke(r, g, b);
             }
+        }
+
+        private bool TryPickColorAt(System.Windows.Point mousePos, out byte r, out byte g, out byte b)
+        {
+            r = g = b = 0;
+            var hits = HelixToolkit.Wpf.Viewport3DHelper.FindHits(viewport.Viewport, mousePos);
+            foreach (var hit in hits)
+            {
+                var hitType = hit.GetType();
+                var modelProp = hitType.GetProperty("Model");
+                var modelObj = modelProp?.GetValue(hit) as Model3D;
+                if (modelObj is not GeometryModel3D geom || geom == markerModel) continue;
+
+                var pointProp = hitType.GetProperty("PointHit") ?? hitType.GetProperty("Point") ?? hitType.GetProperty("Position");
+                if (pointProp?.GetValue(hit) is not Point3D p) continue;
+
+                if (currentMode.ToUpper() == "HSV")
+                {
+                    double hue = Math.Atan2(p.Z, p.X) * (180.0 / Math.PI);
+                    if (hue < 0) hue += 360;
+                    double sat = Math.Min(1.0, Math.Sqrt(p.X * p.X + p.Z * p.Z) / 0.5);
+                    double val = Math.Min(1.0, Math.Max(0.0, p.Y + 0.5));
+                    HsvToRgb(hue, sat, val, out r, out g, out b);
+                }
+                else
+                {
+                    r = (byte)Math.Max(0, Math.Min(255, (p.X + 0.5) * 255));
+                    g = (byte)Math.Max(0, Math.Min(255, (p.Y + 0.5) * 255));
+                    b = (byte)Math.Max(0, Math.Min(255, (p.Z + 0.5) * 255));
+                }
+                return true;
+            }
+            return false;
         }
 
         public void MoveMarkerToRgb(int r, int g, int b)

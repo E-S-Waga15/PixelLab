@@ -2,44 +2,32 @@
 {
     partial class Form1
     {
-        /// <summary>
-        ///  Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        ///  Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
-            {
                 components.Dispose();
-            }
             base.Dispose(disposing);
         }
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        ///  Required method for Designer support - do not modify
-        ///  the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             pictureBox1 = new PictureBox();
             btnOpen = new Button();
             lblColorInfo = new Label();
+            lblColorInfoTitle = new Label();
             cmbColorMode = new ComboBox();
             lblC1 = new Label();
             lblC2 = new Label();
             lblC3 = new Label();
             lblC4 = new Label();
-            trackC1 = new TrackBar();
-            trackC2 = new TrackBar();
-            trackC3 = new TrackBar();
-            trackC4 = new TrackBar();
+            trackC1 = new ModernTrackBar();
+            trackC2 = new ModernTrackBar();
+            trackC3 = new ModernTrackBar();
+            trackC4 = new ModernTrackBar();
             lblV1 = new Label();
             lblV2 = new Label();
             lblV3 = new Label();
@@ -49,382 +37,461 @@
             chkC3 = new CheckBox();
             chkC4 = new CheckBox();
             pictureBoxSpace = new PictureBox();
-            // ElementHost for WPF 3D control
             elementHost = new System.Windows.Forms.Integration.ElementHost();
-            trackZoom = new TrackBar();
-            trackRotate = new TrackBar();
+            trackZoom = new ModernTrackBar();
+            trackRotate = new ModernTrackBar();
             lblSpaceInfo = new Label();
             panelSelectedColor = new Panel();
             cmbViewMode = new ComboBox();
-            // NEW: quantization controls
             cmbQuantColors = new ComboBox();
             chkQuantizeEnable = new CheckBox();
-
-            // NEW controls: Reset and properties
             btnReset = new Button();
-            groupBoxImageProperties = new GroupBox();
             lblImageProperties = new Label();
+            btnSave = new Button();
+            panelLeft = new GlassPanel();
+            panelCenter = new Panel();
+            panelRight = new GlassPanel();
+            panelToolbar = new GlassPanel();
+            panelWorkspace = new GlassPanel();
+            panelColorOverlay = new GlassPanel();
+            panelSpaceView = new GlassPanel();
+            panelImageProps = new GlassPanel();
+            lblAppTitle = new Label();
+            lblOpenHint = new Label();
+            lblExportCaption = new Label();
+            lblPropsTitle = new Label();
+            lblColorModeTitle = new Label();
+            lblQuantTitle = new Label();
+            lblViewTitle = new Label();
+            lblChannelsTitle = new Label();
+            btnView2D = new Button();
+            btnView3D = new Button();
+            lblZoom = new Label();
+            lblRotate = new Label();
 
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackC1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackC2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackC3).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackC4).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSpace).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackZoom).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackRotate).BeginInit();
+            panelLeft.SuspendLayout();
+            panelCenter.SuspendLayout();
+            panelRight.SuspendLayout();
+            panelToolbar.SuspendLayout();
+            panelWorkspace.SuspendLayout();
+            panelColorOverlay.SuspendLayout();
+            panelSpaceView.SuspendLayout();
+            panelImageProps.SuspendLayout();
             SuspendLayout();
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.BackColor = SystemColors.ControlLightLight;
-            pictureBox1.Location = new Point(12, 80);
+
+            // --- pictureBox1 ---
+            pictureBox1.BackColor = UiTheme.WorkspaceBg;
+            pictureBox1.Dock = DockStyle.Fill;
+            pictureBox1.Location = new Point(8, 8);
+            pictureBox1.Margin = new Padding(8);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(262, 206);
+            pictureBox1.Size = new Size(584, 364);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
-            // 
-            // btnOpen
-            // 
-            btnOpen.Location = new Point(12, 292);
+
+            // --- btnOpen ---
+            btnOpen.FlatStyle = FlatStyle.Flat;
+            btnOpen.Font = new Font("Segoe UI", 28F, FontStyle.Bold);
+            btnOpen.Location = new Point(15, 48);
             btnOpen.Name = "btnOpen";
-            btnOpen.Size = new Size(139, 29);
+            btnOpen.Size = new Size(220, 110);
             btnOpen.TabIndex = 1;
-            btnOpen.Text = "Open Image";
-            btnOpen.UseVisualStyleBackColor = true;
+            btnOpen.Text = "+";
+            btnOpen.UseVisualStyleBackColor = false;
             btnOpen.Click += btnOpen_Click;
-            // 
-            // btnReset (NEW)
-            // 
-            btnReset.Location = new Point(157, 292);
+
+            // --- btnSave ---
+            btnSave.Location = new Point(15, 200);
+            btnSave.Name = "btnSave";
+            btnSave.Size = new Size(105, 36);
+            btnSave.TabIndex = 2;
+            btnSave.Text = "💾 Save";
+            btnSave.UseVisualStyleBackColor = false;
+            btnSave.Click += btnSave_Click;
+
+            // --- btnReset (toolbar) ---
+            btnReset.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnReset.Location = new Point(500, 10);
             btnReset.Name = "btnReset";
-            btnReset.Size = new Size(117, 29);
-            btnReset.TabIndex = 2;
-            btnReset.Text = "Reset";
-            btnReset.UseVisualStyleBackColor = true;
+            btnReset.Size = new Size(90, 32);
+            btnReset.TabIndex = 3;
+            btnReset.Text = "RESET";
+            btnReset.UseVisualStyleBackColor = false;
             btnReset.Click += btnReset_Click;
 
-
-            btnSave = new Button();
-            btnSave.Location = new Point(12, 330); // اضبط الموقع حسب ما يناسبك
-            btnSave.Name = "btnSave";
-            btnSave.Size = new Size(139, 29);
-            btnSave.Text = "Save Image";
-            btnSave.UseVisualStyleBackColor = true;
-            btnSave.Click += btnSave_Click; // ربط حدث الضغط
-
-            // تأكد من إضافته للنموذج
-            // 
-            // groupBoxImageProperties (NEW)
-            // 
-            groupBoxImageProperties.Location = new Point(316, 12);
-            groupBoxImageProperties.Name = "groupBoxImageProperties";
-            groupBoxImageProperties.Size = new Size(240, 60);
-            groupBoxImageProperties.TabIndex = 30;
-            groupBoxImageProperties.TabStop = false;
-            groupBoxImageProperties.Text = "Image Properties";
-            // 
-            // lblImageProperties (NEW)
-            // 
-            lblImageProperties.Location = new Point(6, 22);
+            // --- lblImageProperties ---
+            lblImageProperties.Dock = DockStyle.Fill;
+            lblImageProperties.Font = new Font("Segoe UI", 9F);
             lblImageProperties.Name = "lblImageProperties";
-            lblImageProperties.Size = new Size(228, 32);
-            lblImageProperties.AutoSize = false; // ensure it fills the groupbox
+            lblImageProperties.Padding = new Padding(6, 25, 6, 6);
             lblImageProperties.Text = "No image loaded";
-            groupBoxImageProperties.Controls.Add(lblImageProperties);
-            // 
-            // lblColorInfo
-            // 
-            lblColorInfo.AutoSize = true;
-            lblColorInfo.Location = new Point(316, 80);
+
+            // --- lblColorInfo (bottom panel — selected color details) ---
+            lblColorInfoTitle.AutoSize = false;
+            lblColorInfoTitle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            lblColorInfoTitle.Location = new Point(14, 182);
+            lblColorInfoTitle.Padding = new Padding(0, 0, 0, 0);
+            lblColorInfoTitle.Name = "lblColorInfoTitle";
+            lblColorInfoTitle.Size = new Size(400, 25);
+            lblColorInfoTitle.Text = "معلومات اللون المختار";
+
+            lblColorInfo.AutoSize = false;
+            lblColorInfo.Font = new Font("Segoe UI", 8.5F);
+           lblColorInfo.Location = new Point(14, 211);
             lblColorInfo.Name = "lblColorInfo";
-            lblColorInfo.Size = new Size(54, 20);
+            lblColorInfo.Size = new Size(580, 100);
             lblColorInfo.TabIndex = 5;
-            lblColorInfo.Text = "RGB →";
-            // 
-            // cmbColorMode
-            // 
+            lblColorInfo.Text = "مرّر المؤشر فوق الصورة أو الفضاء اللوني لاختيار بكسل";
+
+            // --- cmbColorMode ---
+            cmbColorMode.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbColorMode.FormattingEnabled = true;
-            cmbColorMode.Location = new Point(685, 41);
+            cmbColorMode.Location = new Point(200, 42);
             cmbColorMode.Name = "cmbColorMode";
-            cmbColorMode.Size = new Size(201, 28);
+            cmbColorMode.Size = new Size(200, 28);
             cmbColorMode.TabIndex = 6;
-            // 
-            // cmbViewMode
-            // 
+
+            // --- cmbViewMode (hidden, synced by 2D/3D buttons) ---
             cmbViewMode.FormattingEnabled = true;
-            cmbViewMode.Location = new Point(900, 41);
+            cmbViewMode.Location = new Point(-500, -500);
             cmbViewMode.Name = "cmbViewMode";
-            cmbViewMode.Size = new Size(120, 28);
+            cmbViewMode.Size = new Size(80, 28);
             cmbViewMode.TabIndex = 7;
-            // 
-            // lblC1
-            // 
-            lblC1.AutoSize = true;
-            lblC1.Location = new Point(591, 91);
+            cmbViewMode.Visible = false;
+
+            // --- channel labels & tracks ---
+            lblC1.AutoSize = false;
+            lblC1.Location = new Point(12, 48);
             lblC1.Name = "lblC1";
-            lblC1.Size = new Size(50, 20);
-            lblC1.TabIndex = 7;
-            lblC1.Text = "label1";
-            // 
-            // lblC2
-            // 
-            lblC2.AutoSize = true;
-            lblC2.Location = new Point(591, 150);
+            lblC1.Text = "R";
+            lblC2.AutoSize = false;
+            lblC2.Location = new Point(12, 108);
             lblC2.Name = "lblC2";
-            lblC2.Size = new Size(50, 20);
-            lblC2.TabIndex = 8;
-            lblC2.Text = "label2";
-            // 
-            // lblC3
-            // 
-            lblC3.AutoSize = true;
-            lblC3.Location = new Point(591, 212);
+            lblC2.Text = "G";
+            lblC3.AutoSize = false;
+            lblC3.Location = new Point(12, 168);
             lblC3.Name = "lblC3";
-            lblC3.Size = new Size(50, 20);
-            lblC3.TabIndex = 9;
-            lblC3.Text = "label3";
-            // 
-            // lblC4
-            // 
-            lblC4.AutoSize = true;
-            lblC4.Location = new Point(591, 274);
+            lblC3.Text = "B";
+            lblC4.AutoSize = false;
+            lblC4.Location = new Point(12, 228);
             lblC4.Name = "lblC4";
-            lblC4.Size = new Size(50, 20);
-            lblC4.TabIndex = 10;
-            lblC4.Text = "label4";
-            // 
-            // trackC1
-            // 
-            trackC1.Location = new Point(691, 91);
+            lblC4.Text = "K";
+
+            trackC1.Location = new Point(42, 40);
+            trackC1.Maximum = 255;
             trackC1.Name = "trackC1";
-            trackC1.Size = new Size(195, 56);
+            trackC1.Size = new Size(170, 28);
             trackC1.TabIndex = 11;
-            // 
-            // trackC2
-            // 
-            trackC2.Location = new Point(691, 150);
+            trackC2.Location = new Point(42, 100);
+            trackC2.Maximum = 255;
             trackC2.Name = "trackC2";
-            trackC2.Size = new Size(195, 56);
+            trackC2.Size = new Size(170, 28);
             trackC2.TabIndex = 12;
-            // 
-            // trackC3
-            // 
-            trackC3.Location = new Point(691, 212);
+            trackC3.Location = new Point(42, 160);
+            trackC3.Maximum = 255;
             trackC3.Name = "trackC3";
-            trackC3.Size = new Size(195, 56);
+            trackC3.Size = new Size(170, 28);
             trackC3.TabIndex = 13;
-            // 
-            // trackC4
-            // 
-            trackC4.Location = new Point(691, 274);
+            trackC4.Location = new Point(42, 220);
+            trackC4.Maximum = 255;
             trackC4.Name = "trackC4";
-            trackC4.Size = new Size(195, 56);
+            trackC4.Size = new Size(170, 28);
             trackC4.TabIndex = 14;
-            // 
-            // lblV1
-            // 
+
             lblV1.AutoSize = true;
-            lblV1.Location = new Point(950, 91);
+            lblV1.Location = new Point(218, 48);
             lblV1.Name = "lblV1";
-            lblV1.Size = new Size(50, 20);
-            lblV1.TabIndex = 15;
-            lblV1.Text = "label5";
-            // 
-            // lblV2
-            // 
+            lblV1.Text = "0";
             lblV2.AutoSize = true;
-            lblV2.Location = new Point(950, 150);
+            lblV2.Location = new Point(218, 108);
             lblV2.Name = "lblV2";
-            lblV2.Size = new Size(50, 20);
-            lblV2.TabIndex = 16;
-            lblV2.Text = "label6";
-            // 
-            // lblV3
-            // 
+            lblV2.Text = "0";
             lblV3.AutoSize = true;
-            lblV3.Location = new Point(950, 212);
+            lblV3.Location = new Point(218, 168);
             lblV3.Name = "lblV3";
-            lblV3.Size = new Size(50, 20);
-            lblV3.TabIndex = 17;
-            lblV3.Text = "label7";
-            // 
-            // lblV4
-            // 
+            lblV3.Text = "0";
             lblV4.AutoSize = true;
-            lblV4.Location = new Point(950, 274);
+            lblV4.Location = new Point(218, 228);
             lblV4.Name = "lblV4";
-            lblV4.Size = new Size(50, 20);
-            lblV4.TabIndex = 18;
-            lblV4.Text = "label8";
-            // 
-            // chkC1
-            // 
+            lblV4.Text = "0";
+
             chkC1.AutoSize = true;
-            chkC1.Location = new Point(1040, 91);
+            chkC1.Location = new Point(248, 44);
             chkC1.Name = "chkC1";
-            chkC1.Size = new Size(50, 24);
-            chkC1.TabIndex = 19;
             chkC1.Text = "On";
-            chkC1.UseVisualStyleBackColor = true;
-            // 
-            // chkC2
-            // 
             chkC2.AutoSize = true;
-            chkC2.Location = new Point(1040, 150);
+            chkC2.Location = new Point(248, 104);
             chkC2.Name = "chkC2";
-            chkC2.Size = new Size(50, 24);
-            chkC2.TabIndex = 20;
             chkC2.Text = "On";
-            chkC2.UseVisualStyleBackColor = true;
-            // 
-            // chkC3
-            // 
             chkC3.AutoSize = true;
-            chkC3.Location = new Point(1040, 212);
+            chkC3.Location = new Point(248, 164);
             chkC3.Name = "chkC3";
-            chkC3.Size = new Size(50, 24);
-            chkC3.TabIndex = 21;
             chkC3.Text = "On";
-            chkC3.UseVisualStyleBackColor = true;
-            // 
-            // chkC4
-            // 
             chkC4.AutoSize = true;
-            chkC4.Location = new Point(1040, 274);
+            chkC4.Location = new Point(248, 224);
             chkC4.Name = "chkC4";
-            chkC4.Size = new Size(50, 24);
-            chkC4.TabIndex = 22;
             chkC4.Text = "On";
-            chkC4.UseVisualStyleBackColor = true;
-            // 
-            // pictureBoxSpace
-            // 
-            pictureBoxSpace.BackColor = Color.White;
-            pictureBoxSpace.Location = new Point(33, 418);
+
+            // --- color space views (right panel) ---
+            pictureBoxSpace.BackColor = UiTheme.WorkspaceBg;
+            pictureBoxSpace.Dock = DockStyle.Fill;
             pictureBoxSpace.Name = "pictureBoxSpace";
-            pictureBoxSpace.Size = new Size(206, 166);
             pictureBoxSpace.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxSpace.TabIndex = 23;
             pictureBoxSpace.TabStop = false;
-            // 
-            // elementHost
-            // 
-            elementHost.Location = new Point(33, 418);
+
+            elementHost.Dock = DockStyle.Fill;
             elementHost.Name = "elementHost";
-            elementHost.Size = new Size(206, 166);
             elementHost.TabIndex = 24;
             elementHost.Text = "elementHost";
-            // 
-            // trackZoom
-            // 
-            trackZoom.Location = new Point(791, 449);
+
+            // --- toolbar zoom/rotate ---
+            lblZoom.AutoSize = true;
+            lblZoom.Location = new Point(14, 16);
+            lblZoom.Name = "lblZoom";
+            lblZoom.Text = "Zoom: 100%";
+
+            trackZoom.Location = new Point(110, 14);
             trackZoom.Maximum = 300;
             trackZoom.Minimum = 50;
             trackZoom.Name = "trackZoom";
-            trackZoom.Size = new Size(200, 56);
+            trackZoom.Padding = new Padding(4, 0, 0, 0);
+            trackZoom.Size = new Size(160, 28);
             trackZoom.TabIndex = 24;
             trackZoom.Value = 100;
-            // 
-            // trackRotate
-            // 
-            trackRotate.Location = new Point(800, 533);
+
+            lblRotate.AutoSize = true;
+            lblRotate.Location = new Point(290, 16);
+            lblRotate.Name = "lblRotate";
+            lblRotate.Text = "Rotate: 0°";
+
+            trackRotate.Location = new Point(380, 14);
             trackRotate.Maximum = 360;
             trackRotate.Name = "trackRotate";
-            trackRotate.Size = new Size(200, 56);
+            trackRotate.Size = new Size(110, 28);
             trackRotate.TabIndex = 25;
-            // 
-            // lblSpaceInfo
-            // 
+
             lblSpaceInfo.AutoSize = true;
-            lblSpaceInfo.Location = new Point(451, 418);
+            lblSpaceInfo.Location = new Point(-500, -500);
             lblSpaceInfo.Name = "lblSpaceInfo";
-            lblSpaceInfo.Size = new Size(50, 20);
-            lblSpaceInfo.TabIndex = 26;
-            lblSpaceInfo.Text = "label1";
-            // 
-            // panelSelectedColor
-            // 
-            panelSelectedColor.Location = new Point(278, 533);
+            lblSpaceInfo.Visible = false;
+
+            // --- color overlay (positions set in LayoutColorOverlay) ---
+            panelSelectedColor.Location = new Point(16, 14);
             panelSelectedColor.Name = "panelSelectedColor";
-            panelSelectedColor.Size = new Size(73, 51);
-            panelSelectedColor.TabIndex = 27;
-            // 
-            // NEW: cmbQuantColors
-            // 
+            panelSelectedColor.Size = new Size(56, 56);
+
+            lblColorModeTitle.AutoSize = false;
+            lblColorModeTitle.Location = new Point(88, 14);
+            lblColorModeTitle.Name = "lblColorModeTitle";
+            lblColorModeTitle.Size = new Size(200, 20);
+            lblColorModeTitle.Text = "فضاء لوني / Color Space";
+
+            cmbColorMode.Location = new Point(88, 46);
+            cmbColorMode.Size = new Size(200, 28);
+
+            lblViewTitle.AutoSize = false;
+            lblViewTitle.Location = new Point(400, 14);
+            lblViewTitle.Name = "lblViewTitle";
+            lblViewTitle.Size = new Size(200, 20);
+            lblViewTitle.Text = "عرض الفضاء";
+
+            btnView2D.Location = new Point(400, 38);
+            btnView2D.Name = "btnView2D";
+            btnView2D.Size = new Size(95, 48);
+            btnView2D.TabIndex = 40;
+            btnView2D.Text = "2D View";
+            btnView2D.UseVisualStyleBackColor = false;
+
+            btnView3D.Location = new Point(503, 38);
+            btnView3D.Name = "btnView3D";
+            btnView3D.Size = new Size(95, 48);
+            btnView3D.TabIndex = 41;
+            btnView3D.Text = "3D View";
+            btnView3D.UseVisualStyleBackColor = false;
+
+            lblQuantTitle.AutoSize = false;
+            lblQuantTitle.Location = new Point(16, 100);
+            lblQuantTitle.Name = "lblQuantTitle";
+            lblQuantTitle.Size = new Size(300, 20);
+            lblQuantTitle.Text = "عدد ألوان الصورة";
+
+            cmbQuantColors.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbQuantColors.FormattingEnabled = true;
-            cmbQuantColors.Location = new Point(316, 292);
-            cmbQuantColors.Name = "cmbQuantColors";
-            cmbQuantColors.Size = new Size(120, 28);
-            cmbQuantColors.TabIndex = 28;
             cmbQuantColors.Items.AddRange(new object[] { "2", "4", "8", "16", "32", "64", "128", "256" });
-            cmbQuantColors.SelectedIndex = 7; // default 256
-            // 
-            // NEW: chkQuantizeEnable
-            // 
+            cmbQuantColors.Location = new Point(16, 132);
+            cmbQuantColors.Name = "cmbQuantColors";
+            cmbQuantColors.Size = new Size(110, 28);
+            cmbQuantColors.TabIndex = 28;
+            cmbQuantColors.SelectedIndex = 7;
+
             chkQuantizeEnable.AutoSize = true;
-            chkQuantizeEnable.Location = new Point(460, 295);
+            chkQuantizeEnable.Location = new Point(140, 134);
             chkQuantizeEnable.Name = "chkQuantizeEnable";
-            chkQuantizeEnable.Size = new Size(80, 24);
+            chkQuantizeEnable.Size = new Size(90, 24);
             chkQuantizeEnable.TabIndex = 29;
-            chkQuantizeEnable.Text = "Quantize";
-            chkQuantizeEnable.UseVisualStyleBackColor = true;
-            // 
-            // Form1
-            // 
+            chkQuantizeEnable.Text = "تفعيل";
+
+            // --- section panels ---
+            panelLeft.CornerRadius = 14;
+            panelLeft.Location = new Point(12, 12);
+            panelLeft.Name = "panelLeft";
+            panelLeft.Size = new Size(250, 676);
+            panelLeft.Controls.Add(lblAppTitle);
+            panelLeft.Controls.Add(btnOpen);
+            panelLeft.Controls.Add(lblOpenHint);
+            panelLeft.Controls.Add(btnSave);
+            panelLeft.Controls.Add(btnReset);
+            panelLeft.Controls.Add(lblExportCaption);
+            panelLeft.Controls.Add(panelImageProps);
+
+            lblAppTitle.AutoSize = true;
+            lblAppTitle.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold);
+            lblAppTitle.Location = new Point(15, 12);
+            lblAppTitle.Name = "lblAppTitle";
+            lblAppTitle.Text = "PixelLab";
+
+            lblOpenHint.AutoSize = true;
+            lblOpenHint.Location = new Point(15, 162);
+            lblOpenHint.Name = "lblOpenHint";
+            lblOpenHint.MaximumSize = new Size(220, 0);
+            lblOpenHint.Text = "Add / Open / Replace Image";
+
+            lblExportCaption.AutoSize = true;
+            lblExportCaption.Location = new Point(130, 242);
+            lblExportCaption.Name = "lblExportCaption";
+            lblExportCaption.Text = "Export / Save";
+
+            btnReset.Location = new Point(130, 200);
+            btnReset.Size = new Size(105, 36);
+            btnReset.Text = "↺ Reset";
+
+            panelImageProps.CornerRadius = 10;
+            panelImageProps.Location = new Point(15, 280);
+            panelImageProps.Name = "panelImageProps";
+            panelImageProps.Size = new Size(220, 160);
+            panelImageProps.Controls.Add(lblPropsTitle);
+            panelImageProps.Controls.Add(lblImageProperties);
+
+            lblPropsTitle.Dock = DockStyle.Top;
+            lblPropsTitle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            lblPropsTitle.Height = 28;
+            lblPropsTitle.Name = "lblPropsTitle";
+            lblPropsTitle.Padding = new Padding(6, 6, 0, 0);
+            lblPropsTitle.Text = "IMAGE PROPERTIES";
+
+            panelCenter.BackColor = UiTheme.Background;
+            panelCenter.Location = new Point(272, 12);
+            panelCenter.Name = "panelCenter";
+            panelCenter.Size = new Size(620, 676);
+            panelCenter.Controls.Add(panelToolbar);
+            panelCenter.Controls.Add(panelWorkspace);
+            panelCenter.Controls.Add(panelColorOverlay);
+
+            panelToolbar.CornerRadius = 10;
+            panelToolbar.Dock = DockStyle.Top;
+            panelToolbar.Height = 48;
+            panelToolbar.Name = "panelToolbar";
+            panelToolbar.Controls.Add(lblZoom);
+            panelToolbar.Controls.Add(trackZoom);
+            panelToolbar.Controls.Add(lblRotate);
+            panelToolbar.Controls.Add(trackRotate);
+
+            panelWorkspace.CornerRadius = 12;
+            panelWorkspace.StrongGlow = true;
+            panelWorkspace.Location = new Point(0, 58);
+            panelWorkspace.Name = "panelWorkspace";
+            panelWorkspace.Size = new Size(620, 388);
+            panelWorkspace.Controls.Add(pictureBox1);
+
+            panelColorOverlay.CornerRadius = 12;
+            panelColorOverlay.Location = new Point(0, 454);
+            panelColorOverlay.Name = "panelColorOverlay";
+            panelColorOverlay.Size = new Size(620, 300);
+            panelColorOverlay.Controls.Add(lblColorInfo);
+            panelColorOverlay.Controls.Add(lblColorInfoTitle);
+            panelColorOverlay.Controls.Add(panelSelectedColor);
+            panelColorOverlay.Controls.Add(lblColorModeTitle);
+            panelColorOverlay.Controls.Add(cmbColorMode);
+            panelColorOverlay.Controls.Add(lblViewTitle);
+            panelColorOverlay.Controls.Add(btnView2D);
+            panelColorOverlay.Controls.Add(btnView3D);
+            panelColorOverlay.Controls.Add(lblQuantTitle);
+            panelColorOverlay.Controls.Add(cmbQuantColors);
+            panelColorOverlay.Controls.Add(chkQuantizeEnable);
+
+            panelRight.CornerRadius = 14;
+            panelRight.Location = new Point(902, 12);
+            panelRight.Name = "panelRight";
+            panelRight.Size = new Size(286, 676);
+            panelRight.Controls.Add(panelSpaceView);
+            panelRight.Controls.Add(lblChannelsTitle);
+            panelRight.Controls.Add(lblC1);
+            panelRight.Controls.Add(trackC1);
+            panelRight.Controls.Add(lblV1);
+            panelRight.Controls.Add(chkC1);
+            panelRight.Controls.Add(lblC2);
+            panelRight.Controls.Add(trackC2);
+            panelRight.Controls.Add(lblV2);
+            panelRight.Controls.Add(chkC2);
+            panelRight.Controls.Add(lblC3);
+            panelRight.Controls.Add(trackC3);
+            panelRight.Controls.Add(lblV3);
+            panelRight.Controls.Add(chkC3);
+            panelRight.Controls.Add(lblC4);
+            panelRight.Controls.Add(trackC4);
+            panelRight.Controls.Add(lblV4);
+            panelRight.Controls.Add(chkC4);
+
+            panelSpaceView.CornerRadius = 12;
+            panelSpaceView.StrongGlow = true;
+            panelSpaceView.Location = new Point(10, 12);
+            panelSpaceView.Name = "panelSpaceView";
+            panelSpaceView.Size = new Size(266, 340);
+            panelSpaceView.Controls.Add(pictureBoxSpace);
+            panelSpaceView.Controls.Add(elementHost);
+
+            lblChannelsTitle.AutoSize = true;
+            lblChannelsTitle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            lblChannelsTitle.Location = new Point(12, 368);
+            lblChannelsTitle.Name = "lblChannelsTitle";
+            lblChannelsTitle.Text = "COLOR CHANNELS";
+
+            // --- Form ---
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.GhostWhite;
-            ClientSize = new Size(1168, 630);
-
-            // Add controls (preserve existing order, include new ones)
-            Controls.Add(chkQuantizeEnable);
-            Controls.Add(cmbQuantColors);
-            Controls.Add(panelSelectedColor);
-            Controls.Add(lblSpaceInfo);
-            Controls.Add(trackRotate);
-            Controls.Add(trackZoom);
-            Controls.Add(pictureBoxSpace);
-            Controls.Add(elementHost);
-            Controls.Add(chkC4);
-            Controls.Add(chkC3);
-            Controls.Add(chkC2);
-            Controls.Add(chkC1);
-            Controls.Add(lblV4);
-            Controls.Add(lblV3);
-            Controls.Add(lblV2);
-            Controls.Add(lblV1);
-            Controls.Add(trackC4);
-            Controls.Add(trackC3);
-            Controls.Add(trackC2);
-            Controls.Add(trackC1);
-            Controls.Add(lblC4);
-            Controls.Add(lblC3);
-            Controls.Add(lblC2);
-            Controls.Add(lblC1);
-            Controls.Add(cmbColorMode);
-            Controls.Add(lblColorInfo);
-            Controls.Add(btnOpen);
-            Controls.Add(btnReset);
-            Controls.Add(btnSave);// NEW
-            Controls.Add(pictureBox1);
-            Controls.Add(groupBoxImageProperties); // NEW
-            Controls.Add(pictureBoxSpace);
-            Controls.Add(elementHost);
+            BackColor = UiTheme.Background;
+            ClientSize = new Size(1200, 700);
+            Font = new Font("Segoe UI", 9.5F);
+            ForeColor = UiTheme.TextPrimary;
+            MinimumSize = new Size(1100, 650);
+            Controls.Add(panelRight);
+            Controls.Add(panelCenter);
+            Controls.Add(panelLeft);
             Controls.Add(cmbViewMode);
             Name = "Form1";
-            Text = "Form1";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "PixelLab — AeroEdit Style";
+
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackC1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackC2).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackC3).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackC4).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBoxSpace).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackZoom).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackRotate).EndInit();
+            panelLeft.ResumeLayout(false);
+            panelLeft.PerformLayout();
+            panelCenter.ResumeLayout(false);
+            panelRight.ResumeLayout(false);
+            panelRight.PerformLayout();
+            panelToolbar.ResumeLayout(false);
+            panelToolbar.PerformLayout();
+            panelWorkspace.ResumeLayout(false);
+            panelColorOverlay.ResumeLayout(false);
+            panelColorOverlay.PerformLayout();
+            panelSpaceView.ResumeLayout(false);
+            panelImageProps.ResumeLayout(false);
+            panelImageProps.PerformLayout();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
@@ -432,15 +499,16 @@
         private PictureBox pictureBox1;
         private Button btnOpen;
         private Label lblColorInfo;
+        private Label lblColorInfoTitle;
         private ComboBox cmbColorMode;
         private Label lblC1;
         private Label lblC2;
         private Label lblC3;
         private Label lblC4;
-        private TrackBar trackC1;
-        private TrackBar trackC2;
-        private TrackBar trackC3;
-        private TrackBar trackC4;
+        private ModernTrackBar trackC1;
+        private ModernTrackBar trackC2;
+        private ModernTrackBar trackC3;
+        private ModernTrackBar trackC4;
         private Label lblV1;
         private Label lblV2;
         private Label lblV3;
@@ -451,20 +519,35 @@
         private CheckBox chkC4;
         private PictureBox pictureBoxSpace;
         private System.Windows.Forms.Integration.ElementHost elementHost;
-        private TrackBar trackZoom;
-        private TrackBar trackRotate;
+        private ModernTrackBar trackZoom;
+        private ModernTrackBar trackRotate;
         private Label lblSpaceInfo;
         private Panel panelSelectedColor;
         private ComboBox cmbViewMode;
-
-        // NEW controls
         private ComboBox cmbQuantColors;
         private CheckBox chkQuantizeEnable;
-
-        // Added controls
         private Button btnReset;
-        private GroupBox groupBoxImageProperties;
         private Label lblImageProperties;
         private Button btnSave;
+        private GlassPanel panelLeft;
+        private Panel panelCenter;
+        private GlassPanel panelRight;
+        private GlassPanel panelToolbar;
+        private GlassPanel panelWorkspace;
+        private GlassPanel panelColorOverlay;
+        private GlassPanel panelSpaceView;
+        private GlassPanel panelImageProps;
+        private Label lblAppTitle;
+        private Label lblOpenHint;
+        private Label lblExportCaption;
+        private Label lblPropsTitle;
+        private Label lblColorModeTitle;
+        private Label lblQuantTitle;
+        private Label lblViewTitle;
+        private Label lblChannelsTitle;
+        private Button btnView2D;
+        private Button btnView3D;
+        private Label lblZoom;
+        private Label lblRotate;
     }
 }

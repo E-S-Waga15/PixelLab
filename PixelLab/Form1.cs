@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Drawing.Imaging;
@@ -17,6 +18,7 @@ namespace PixelLab
         public Form1()
         {
             InitializeComponent();
+            ApplyGlassTheme();
 
             pictureBox1.AllowDrop = true;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
@@ -25,10 +27,13 @@ namespace PixelLab
             cmbColorMode.Items.AddRange(new object[] { "RGB", "HSV", "CMYK", "YUV", "LAB", "YCbCr" });
             cmbColorMode.SelectedIndexChanged += cmbColorMode_SelectedIndexChanged;
 
-            // تعبئة أوضاع العرض
+            // تعبئة أوضاع العرض (مخفي — يُحدَّث عبر أزرار 2D/3D)
             cmbViewMode.Items.AddRange(new object[] { "2D", "3D" });
             cmbViewMode.SelectedIndexChanged += cmbViewMode_SelectedIndexChanged;
             cmbViewMode.SelectedIndex = 0;
+            btnView2D.Click += (s, e) => SetViewMode(false);
+            btnView3D.Click += (s, e) => SetViewMode(true);
+            UpdateViewModeButtons(false);
 
             // Initialize quantization controls
             if (cmbQuantColors != null)
@@ -50,7 +55,12 @@ namespace PixelLab
                 elementHost.Visible = false;
                 // الاشتراك في حدث اختيار اللون من المشهد ثلاثي الأبعاد
                 colorSpace3D.ColorSelectedFrom3D += ColorSpaceControl_ColorSelectedFrom3D;
+                colorSpace3D.ColorHoveredFrom3D += ColorSpaceControl_ColorHoveredFrom3D;
             }
+
+            SetupPixelPickerCursor(pictureBox1);
+            SetupPixelPickerCursor(pictureBoxSpace);
+            SetupPixelPickerCursor(elementHost);
 
             // ربط الأحداث
             trackC1.ValueChanged += ApplySelectedColorMode;
@@ -60,27 +70,7 @@ namespace PixelLab
 
             pictureBox1.MouseClick += PictureBox1_MouseClick;
             pictureBox1.MouseDown += pictureBox1_MouseDown;
-            pictureBox1.MouseMove += (s, e) => {
-                if (editedImage == null) return;
-                int imageX = e.X * editedImage.Width / pictureBox1.Width;
-                int imageY = e.Y * editedImage.Height / pictureBox1.Height;
-                if (imageX < 0 || imageX >= editedImage.Width || imageY < 0 || imageY >= editedImage.Height) return;
-                Color color = editedImage.GetPixel(imageX, imageY);
-                // update sliders to match hovered color (only RGB for now)
-                if (cmbColorMode.SelectedItem?.ToString() == "RGB")
-                {
-                    isUpdatingControls = true;
-                    trackC1.Value = color.R;
-                    trackC2.Value = color.G;
-                    trackC3.Value = color.B;
-                    isUpdatingControls = false;
-                    UpdateTrackLabels();
-
-                    // move 3D marker to selected color
-                    if (colorSpace3D != null)
-                        colorSpace3D.MoveMarkerToRgb(color.R, color.G, color.B);
-                }
-            };
+            pictureBox1.MouseMove += PictureBox1_MouseMove;
 
             // Click on pictureBox should pick the pixel color and synchronize UI and 3D marker
             void pictureBox1_MouseDown(object sender, MouseEventArgs e)
@@ -106,6 +96,7 @@ namespace PixelLab
             trackRotate.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
             trackZoom.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
             pictureBoxSpace.MouseClick += PictureBoxSpace_MouseClick;
+            pictureBoxSpace.MouseMove += PictureBoxSpace_MouseMove;
 
             // تفعيل القنوات افتراضياً
             chkC1.Checked = true;
@@ -114,6 +105,219 @@ namespace PixelLab
             chkC4.Checked = true;
 
             cmbColorMode.SelectedIndex = 0;
+            Resize += Form1_Resize;
+            Form1_Resize(this, EventArgs.Empty);
+        }
+
+        private void ApplyGlassTheme()
+        {
+            UiTheme.StyleFlatButton(btnOpen, accent: true);
+            UiTheme.StyleFlatButton(btnSave);
+            UiTheme.StyleFlatButton(btnReset);
+            UiTheme.StyleFlatButton(btnView2D);
+            UiTheme.StyleFlatButton(btnView3D);
+            UiTheme.StyleComboBox(cmbColorMode);
+            UiTheme.StyleComboBox(cmbQuantColors);
+            UiTheme.StyleCheckBox(chkQuantizeEnable);
+
+            foreach (var lbl in new[] { lblAppTitle, lblOpenHint, lblExportCaption, lblPropsTitle,
+                lblColorModeTitle, lblQuantTitle, lblViewTitle, lblChannelsTitle, lblZoom, lblRotate,
+                lblC1, lblC2, lblC3, lblC4, lblV1, lblV2, lblV3, lblV4, lblImageProperties,
+                lblColorInfoTitle, lblColorInfo })
+                UiTheme.StyleLabel(lbl);
+            lblColorInfoTitle.Font = UiTheme.SmallFont;
+            lblColorInfo.Font = UiTheme.SmallFont;
+
+            panelSelectedColor.Paint += PanelSelectedColor_Paint;
+            panelSelectedColor.BackColor = UiTheme.WorkspaceBg;
+        }
+
+        private void PanelSelectedColor_Paint(object? sender, PaintEventArgs e)
+        {
+            var panel = (Panel)sender!;
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var rect = new Rectangle(2, 2, panel.Width - 5, panel.Height - 5);
+            using var path = UiTheme.RoundedRect(rect, 8);
+            using var glow = new Pen(Color.FromArgb(120, UiTheme.NeonCyan), 2f);
+            e.Graphics.DrawPath(glow, path);
+            if (panel.BackColor != UiTheme.WorkspaceBg)
+            {
+                using var fill = new SolidBrush(panel.BackColor);
+                e.Graphics.FillPath(fill, path);
+            }
+        }
+
+        private void SetViewMode(bool threeD)
+        {
+            if (cmbViewMode.SelectedIndex == (threeD ? 1 : 0)) return;
+            cmbViewMode.SelectedIndex = threeD ? 1 : 0;
+        }
+
+        private void UpdateViewModeButtons(bool is3D)
+        {
+            UiTheme.StyleToggleButton(btnView2D, !is3D);
+            UiTheme.StyleToggleButton(btnView3D, is3D);
+        }
+
+        private void Form1_Resize(object? sender, EventArgs e)
+        {
+            if (panelCenter == null) return;
+            int h = panelCenter.ClientSize.Height;
+            int toolbarH = panelToolbar?.Height ?? 48;
+            const int overlayH = 560;
+            const int gap = 6;
+            if (panelWorkspace != null)
+                panelWorkspace.SetBounds(0, toolbarH + gap, panelCenter.ClientSize.Width,
+                    Math.Max(180, h - toolbarH - overlayH - gap * 2));
+            if (panelColorOverlay != null)
+                panelColorOverlay.SetBounds(0, panelWorkspace!.Bottom + gap, panelCenter.ClientSize.Width, overlayH);
+
+            LayoutToolbar();
+            LayoutColorOverlay();
+            LayoutRightChannels();
+        }
+
+        private void LayoutToolbar()
+        {
+            if (panelToolbar == null) return;
+            int w = panelToolbar.ClientSize.Width;
+            const int y = 12;
+            const int sliderH = 28;
+            lblZoom.SetBounds(12, 14, 82, 22);
+            int mid = w / 2;
+            trackZoom.SetBounds(96, y, mid - 110, sliderH);
+            lblRotate.SetBounds(mid - 8, 14, 88, 22);
+            trackRotate.SetBounds(mid + 82, y, w - mid - 98, sliderH);
+        }
+
+        private void LayoutColorOverlay()
+        {
+            if (panelColorOverlay == null) return;
+            int w = panelColorOverlay.ClientSize.Width;
+            const int pad = 14;
+            const int swatch = 56;
+            const int labelH = 52;
+            const int labelGap = 10;
+            const int comboH = 28;
+            const int btnH = 46;
+            const int colGap = 12;
+
+            panelSelectedColor.SetBounds(pad, pad, swatch, swatch);
+
+            int viewW = 210;
+            int viewLeft = w - viewW - pad;
+            int modeLeft = pad + swatch + colGap;
+            int modeWidth = Math.Max(120, viewLeft - modeLeft - colGap);
+            int controlsTop = pad + labelH + labelGap;
+
+            lblColorModeTitle.SetBounds(modeLeft, pad, modeWidth, labelH);
+            cmbColorMode.SetBounds(modeLeft, controlsTop, modeWidth, comboH);
+
+            lblViewTitle.SetBounds(viewLeft, pad, viewW, labelH);
+            int btnW = (viewW - colGap) / 2;
+            btnView2D.SetBounds(viewLeft, controlsTop, btnW, btnH);
+            btnView3D.SetBounds(viewLeft + btnW + colGap, controlsTop, btnW, btnH);
+
+            int quantLabelY = controlsTop + btnH + 14;
+            lblQuantTitle.SetBounds(pad, quantLabelY, w - pad * 2, labelH);
+            int quantControlsTop = quantLabelY + labelH + labelGap;
+            cmbQuantColors.SetBounds(pad, quantControlsTop, 120, comboH);
+            chkQuantizeEnable.SetBounds(pad + 132, quantControlsTop + 2, 110, 24);
+
+            int colorInfoTitleY = quantControlsTop + comboH + 14;
+            lblColorInfoTitle.SetBounds(pad, colorInfoTitleY, w - pad * 2, 35);
+            int colorInfoY = colorInfoTitleY + 58;
+            int colorInfoH = Math.Max(72, panelColorOverlay.ClientSize.Height - colorInfoY - pad);
+            lblColorInfo.SetBounds(pad, colorInfoY, w - pad * 2, colorInfoH);
+
+            lblColorModeTitle.BringToFront();
+            lblViewTitle.BringToFront();
+            lblQuantTitle.BringToFront();
+            lblColorInfoTitle.BringToFront();
+            lblColorInfo.BringToFront();
+        }
+
+        private static void SetupPixelPickerCursor(Control control)
+        {
+            control.MouseEnter += (_, _) =>
+            {
+                if (control.Enabled && control.Visible)
+                    control.Cursor = Cursors.Cross;
+            };
+            control.MouseLeave += (_, _) => control.Cursor = Cursors.Default;
+        }
+
+        private bool TryMapPictureBoxPixel(PictureBox box, Bitmap? bmp, MouseEventArgs e, out int imageX, out int imageY)
+        {
+            imageX = imageY = 0;
+            if (bmp == null || box.Width <= 0 || box.Height <= 0) return false;
+            imageX = e.X * bmp.Width / box.Width;
+            imageY = e.Y * bmp.Height / box.Height;
+            return imageX >= 0 && imageX < bmp.Width && imageY >= 0 && imageY < bmp.Height;
+        }
+
+        private void PictureBox1_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (!TryMapPictureBoxPixel(pictureBox1, editedImage, e, out int imageX, out int imageY)) return;
+            Color color = editedImage!.GetPixel(imageX, imageY);
+            UpdateColorInfoLabel(color, "الصورة", imageX, imageY);
+
+            if (cmbColorMode.SelectedItem?.ToString() == "RGB")
+            {
+                isUpdatingControls = true;
+                trackC1.Value = color.R;
+                trackC2.Value = color.G;
+                trackC3.Value = color.B;
+                isUpdatingControls = false;
+                UpdateTrackLabels();
+                colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
+            }
+            panelSelectedColor.BackColor = color;
+        }
+
+        private void PictureBoxSpace_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (pictureBoxSpace.Image == null) return;
+            using var bmp = new Bitmap(pictureBoxSpace.Image);
+            if (!TryMapPictureBoxPixel(pictureBoxSpace, bmp, e, out int x, out int y)) return;
+            Color color = bmp.GetPixel(x, y);
+            UpdateColorInfoLabel(color, "Color Space_2D", x, y);
+            panelSelectedColor.BackColor = color;
+        }
+
+        private void LayoutRightChannels()
+        {
+            if (panelRight == null || panelSpaceView == null) return;
+            int w = panelRight.ClientSize.Width;
+            int h = panelRight.ClientSize.Height;
+            const int pad = 10;
+            int spaceH = (int)(h * 0.52);
+            panelSpaceView.SetBounds(pad, pad, w - pad * 2, spaceH);
+
+            int titleY = panelSpaceView.Bottom + 10;
+            lblChannelsTitle.SetBounds(pad, titleY, w - pad * 2, 22);
+
+            int rowY = titleY + 28;
+            const int rowH = 46;
+            const int lblW = 30;
+            const int lblH = 36;
+            const int valW = 20;
+            const int chkW = 44;
+            int trackW = w - pad * 2 - lblW - valW - chkW - 16;
+
+            LayoutChannelRow(lblC1, trackC1, lblV1, chkC1, pad, rowY, lblW, lblH, trackW, valW, chkW);
+            LayoutChannelRow(lblC2, trackC2, lblV2, chkC2, pad, rowY + rowH, lblW, lblH, trackW, valW, chkW);
+            LayoutChannelRow(lblC3, trackC3, lblV3, chkC3, pad, rowY + rowH * 2, lblW, lblH, trackW, valW, chkW);
+            LayoutChannelRow(lblC4, trackC4, lblV4, chkC4, pad, rowY + rowH * 3, lblW, lblH, trackW, valW, chkW);
+        }
+
+        private static void LayoutChannelRow(Label ch, ModernTrackBar track, Label val, CheckBox on,
+            int pad, int y, int lblW, int lblH, int trackW, int valW, int chkW)
+        {
+            ch.SetBounds(pad, y + 8, lblW, lblH);
+            track.SetBounds(pad + lblW + 6, y + 8, trackW, 28);
+            val.SetBounds(pad + lblW + trackW + 12, y + 8, valW, lblH);
+            on.SetBounds(pad + lblW + trackW + valW + 18, y + 10, chkW, 24);
         }
 
         private void btnOpen_Click(object sender, EventArgs e)
@@ -143,9 +347,12 @@ namespace PixelLab
             if (pictureBox1?.Image != null)
             {
                 string formatName = GetImageFormatName(pictureBox1.Image);
-                lblImageProperties.Text = $"الأبعاد: {pictureBox1.Image.Width}x{pictureBox1.Image.Height} بكسل\r\n" +
-                                          $"الصيغة: {formatName}\r\n" +
-                                          $"الحالة: تم تحميل الصورة";
+                lblImageProperties.Text =
+                    "\r\n" +
+                    $"الأبعاد: {pictureBox1.Image.Width}×{pictureBox1.Image.Height} بكسل\r\n" +
+                    $"Ppi: 96\r\n" +
+                    $"Depth: 8-bit\r\n" +
+                    $"Colorspace: {formatName} (Original)";
             }
             else
             {
@@ -465,15 +672,23 @@ namespace PixelLab
             UpdateColorInfoLabel(color);
         }
 
-        private void UpdateColorInfoLabel(Color color)
+        private void UpdateColorInfoLabel(Color color, string source = "", int? pixelX = null, int? pixelY = null)
         {
+            string header = string.IsNullOrEmpty(source) ? "" : $"{source}\r\n";
+            if (pixelX.HasValue && pixelY.HasValue)
+                header += $"Pixel ({pixelX}, {pixelY})";
+            if (!string.IsNullOrEmpty(header))
+                header += "\r\n";
+
             lblColorInfo.Text =
-                $"RGB   → ({color.R}, {color.G}, {color.B})\n" +
-                $"HSV   → {RGBtoHSV(color)}\n" +
-                $"CMYK  → {RGBtoCMYK(color)}\n" +
-                $"YUV   → {RGBtoYUV(color)}\n" +
-                $"YCbCr → {RGBtoYCbCr(color)}\n" +
+                header +
+                $"RGB   → ({color.R}, {color.G}, {color.B})\r\n" +
+                $"HSV   → {RGBtoHSV(color)}\r\n" +
+                $"CMYK  → {RGBtoCMYK(color)}\r\n" +
+                $"YUV   → {RGBtoYUV(color)}\r\n" +
+                $"YCbCr → {RGBtoYCbCr(color)}\r\n" +
                 $"LAB   → {RGBtoLAB(color)}";
+            panelSelectedColor.BackColor = color;
         }
 
         private void pictureBox1_DragEnter(object sender, DragEventArgs e)
@@ -741,7 +956,7 @@ namespace PixelLab
 
             using (Graphics g = Graphics.FromImage(rotated))
             {
-                g.Clear(Color.White);
+                g.Clear(UiTheme.WorkspaceBg);
                 g.TranslateTransform(newWidth / 2f, newHeight / 2f);
                 g.RotateTransform(angle);
                 g.TranslateTransform(-newWidth / 2f, -newHeight / 2f);
@@ -749,7 +964,8 @@ namespace PixelLab
             }
 
             pictureBoxSpace.Image = rotated;
-            lblSpaceInfo.Text = $"Zoom: {zoom}%   Rotate: {angle}°";
+            lblZoom.Text = $"Zoom: {zoom}%";
+            lblRotate.Text = $"Rotate: {angle}°";
             zoomed.Dispose();
 
             // Update 3D camera as well when 2D preview changes
@@ -762,22 +978,8 @@ namespace PixelLab
         // Central synchronization function: updates UI controls and labels from an RGB color
         private void SynchronizeAndDisplaySystemInfo(byte r, byte g, byte b)
         {
-            double rd = r / 255.0; double gd = g / 255.0; double bd = b / 255.0;
-            double max = Math.Max(rd, Math.Max(gd, bd)); double min = Math.Min(rd, Math.Min(gd, bd));
-            double delta = max - min;
-
-            double h = 0;
-            if (delta > 0)
-            {
-                if (max == rd) h = 60 * (((gd - bd) / delta) % 6);
-                else if (max == gd) h = 60 * (((bd - rd) / delta) + 2);
-                else if (max == bd) h = 60 * (((rd - gd) / delta) + 4);
-            }
-            if (h < 0) h += 360;
-            double s = (max == 0) ? 0 : delta / max;
-            double v = max;
-
-            lblColorInfo.Text = $"[System Sync Info]\r\nRGB: ({r}, {g}, {b})\r\nHSV: ({(int)h}°, {(int)(s * 100)}%, {(int)(v * 100)}%)";
+            string source = elementHost?.Visible == true ? "Color Space_3D" : "Color Space_2D";
+            UpdateColorInfoLabel(Color.FromArgb(r, g, b), source);
 
             // sync trackbars and labels (clamped to ranges)
             try
@@ -792,10 +994,27 @@ namespace PixelLab
             catch { }
         }
 
-        // Handler called when 3D control fires a color selection
         private void ColorSpaceControl_ColorSelectedFrom3D(byte r, byte g, byte b)
         {
             SynchronizeAndDisplaySystemInfo(r, g, b);
+        }
+
+        private void ColorSpaceControl_ColorHoveredFrom3D(byte r, byte g, byte b)
+        {
+            UpdateColorInfoLabel(Color.FromArgb(r, g, b), "Color Space_3D");
+            if (cmbColorMode.SelectedItem?.ToString() == "RGB")
+            {
+                isUpdatingControls = true;
+                try
+                {
+                    if (trackC1.Minimum <= r && trackC1.Maximum >= r) trackC1.Value = r;
+                    if (trackC2.Minimum <= g && trackC2.Maximum >= g) trackC2.Value = g;
+                    if (trackC3.Minimum <= b && trackC3.Maximum >= b) trackC3.Value = b;
+                    UpdateTrackLabels();
+                }
+                finally { isUpdatingControls = false; }
+            }
+            colorSpace3D?.MoveMarkerToRgb(r, g, b);
         }
 
         private void cmbViewMode_SelectedIndexChanged(object sender, EventArgs e)
@@ -803,10 +1022,13 @@ namespace PixelLab
             if (cmbViewMode == null || elementHost == null) return;
 
             bool is3D = cmbViewMode.SelectedItem?.ToString() == "3D";
+            UpdateViewModeButtons(is3D);
 
             // Toggle visibility so the WPF host doesn't get obscured by the 2D PictureBox
             elementHost.Visible = is3D;
             pictureBoxSpace.Visible = !is3D;
+            if (is3D) elementHost.BringToFront();
+            else pictureBoxSpace.BringToFront();
 
             if (is3D)
             {
@@ -814,6 +1036,8 @@ namespace PixelLab
                 {
                     colorSpace3D = new PixelLab.Controls.ColorSpace3DControl();
                     elementHost.Child = colorSpace3D;
+                    colorSpace3D.ColorSelectedFrom3D += ColorSpaceControl_ColorSelectedFrom3D;
+                    colorSpace3D.ColorHoveredFrom3D += ColorSpaceControl_ColorHoveredFrom3D;
                 }
 
                 // make sure the host is in front and has focus so WPF renders correctly
@@ -841,15 +1065,7 @@ namespace PixelLab
                 if (x < 0 || x >= bmp.Width || y < 0 || y >= bmp.Height) return;
 
                 Color color = bmp.GetPixel(x, y);
-                panelSelectedColor.BackColor = color;
-
-                lblSpaceInfo.Text = $"Selected Color:\n" +
-                    $"RGB   → ({color.R}, {color.G}, {color.B})\n" +
-                    $"HSV   → {RGBtoHSV(color)}\n" +
-                    $"CMYK  → {RGBtoCMYK(color)}\n" +
-                    $"YUV   → {RGBtoYUV(color)}\n" +
-                    $"YCbCr → {RGBtoYCbCr(color)}\n" +
-                    $"LAB   → {RGBtoLAB(color)}";
+                UpdateColorInfoLabel(color, "الفضاء اللوني 2D", x, y);
             }
         }
     }
