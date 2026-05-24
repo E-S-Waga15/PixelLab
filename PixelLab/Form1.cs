@@ -15,6 +15,7 @@ namespace PixelLab
         private string currentImageName = string.Empty;
         private string currentImagePath = string.Empty;
         private bool isUpdatingControls = false;
+        private bool isColorSelectionLocked = false;
         private PixelLab.Controls.ColorSpace3DControl colorSpace3D;
 
         public Form1()
@@ -56,7 +57,8 @@ namespace PixelLab
             {
                 elementHost.Child = colorSpace3D;
                 elementHost.Visible = false;
-                // الاشتراك في حدث اختيار اللون من المشهد ثلاثي الأبعاد
+                // الاشتراك في أحداث اختيار اللون من المشهد ثلاثي الأبعاد
+                colorSpace3D.ColorClickedFrom3D += ColorSpaceControl_ColorClickedFrom3D;
                 colorSpace3D.ColorSelectedFrom3D += ColorSpaceControl_ColorSelectedFrom3D;
                 colorSpace3D.ColorHoveredFrom3D += ColorSpaceControl_ColorHoveredFrom3D;
             }
@@ -262,6 +264,8 @@ namespace PixelLab
 
         private void PictureBox1_MouseMove(object? sender, MouseEventArgs e)
         {
+            if (isColorSelectionLocked) return;
+
             if (!TryMapPictureBoxPixel(pictureBox1, editedImage, e, out int imageX, out int imageY)) return;
             Color color = editedImage!.GetPixel(imageX, imageY);
             UpdateColorInfoLabel(color, "الصورة", imageX, imageY);
@@ -276,17 +280,21 @@ namespace PixelLab
                 UpdateTrackLabels();
                 colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
             }
-            panelSelectedColor.BackColor = color;
+            if (!isColorSelectionLocked)
+                panelSelectedColor.BackColor = color;
         }
 
         private void PictureBoxSpace_MouseMove(object? sender, MouseEventArgs e)
         {
+            if (isColorSelectionLocked) return;
+
             if (pictureBoxSpace.Image == null) return;
             using var bmp = new Bitmap(pictureBoxSpace.Image);
             if (!TryMapPictureBoxPixel(pictureBoxSpace, bmp, e, out int x, out int y)) return;
             Color color = bmp.GetPixel(x, y);
             UpdateColorInfoLabel(color, "Color Space_2D", x, y);
-            panelSelectedColor.BackColor = color;
+            if (!isColorSelectionLocked)
+                panelSelectedColor.BackColor = color;
         }
 
         private void LayoutRightChannels()
@@ -699,6 +707,7 @@ namespace PixelLab
         private void PictureBox1_MouseClick(object sender, MouseEventArgs e)
         {
             if (editedImage == null) return;
+            isColorSelectionLocked = false;
 
             int imageX = e.X * editedImage.Width / pictureBox1.Width;
             int imageY = e.Y * editedImage.Height / pictureBox1.Height;
@@ -726,7 +735,8 @@ namespace PixelLab
                 $"YUV   → {RGBtoYUV(color)}\r\n" +
                 $"YCbCr → {RGBtoYCbCr(color)}\r\n" +
                 $"LAB   → {RGBtoLAB(color)}";
-            panelSelectedColor.BackColor = color;
+            if (!isColorSelectionLocked)
+                panelSelectedColor.BackColor = color;
         }
 
         private void pictureBox1_DragEnter(object sender, DragEventArgs e)
@@ -1084,14 +1094,33 @@ namespace PixelLab
             }
         }
 
+        private void ColorSpaceControl_ColorClickedFrom3D(byte r, byte g, byte b)
+        {
+            isColorSelectionLocked = false;
+            SynchronizeAndDisplaySystemInfo(r, g, b);
+        }
+
         private void ColorSpaceControl_ColorSelectedFrom3D(byte r, byte g, byte b)
         {
+            isColorSelectionLocked = true;
             SynchronizeAndDisplaySystemInfo(r, g, b);
+            // If HSV mode, show cone representing local HSV distribution
+            if (cmbColorMode.SelectedItem?.ToString() == "HSV")
+            {
+                colorSpace3D?.ShowHsvCone(r, g, b);
+            }
+            else
+            {
+                colorSpace3D?.ClearCone();
+            }
             ApplySelectedColorMode(null, EventArgs.Empty);
         }
 
         private void ColorSpaceControl_ColorHoveredFrom3D(byte r, byte g, byte b)
         {
+            if (isColorSelectionLocked)
+                return;
+
             UpdateColorInfoLabel(Color.FromArgb(r, g, b), "Color Space_3D");
             if (cmbColorMode.SelectedItem?.ToString() == "RGB")
             {
@@ -1127,6 +1156,7 @@ namespace PixelLab
                 {
                     colorSpace3D = new PixelLab.Controls.ColorSpace3DControl();
                     elementHost.Child = colorSpace3D;
+                    colorSpace3D.ColorClickedFrom3D += ColorSpaceControl_ColorClickedFrom3D;
                     colorSpace3D.ColorSelectedFrom3D += ColorSpaceControl_ColorSelectedFrom3D;
                     colorSpace3D.ColorHoveredFrom3D += ColorSpaceControl_ColorHoveredFrom3D;
                 }
@@ -1147,6 +1177,7 @@ namespace PixelLab
         private void PictureBoxSpace_MouseClick(object sender, MouseEventArgs e)
         {
             if (pictureBoxSpace.Image == null) return;
+            isColorSelectionLocked = false;
 
             using (Bitmap bmp = new Bitmap(pictureBoxSpace.Image))
             {
@@ -1172,7 +1203,9 @@ namespace PixelLab
                 if (x < 0 || x >= bmp.Width || y < 0 || y >= bmp.Height) return;
 
                 Color color = bmp.GetPixel(x, y);
+                isColorSelectionLocked = true;
                 SynchronizeAndDisplaySystemInfo(color.R, color.G, color.B);
+                colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
                 ApplySelectedColorMode(null, EventArgs.Empty);
             }
         }

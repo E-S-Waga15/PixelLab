@@ -15,10 +15,13 @@ namespace PixelLab.Controls
         private ModelVisual3D modelContainer;
         private Model3DGroup spaceGroup;
         private GeometryModel3D markerModel;
+        private GeometryModel3D? coneModel;
         private double baseCameraDistance = 3.0;
         private string currentMode = "RGB";
 
-        // حدث يتم إطلاقه عند النقر المزدوج على مجسم الـ 3D لاختيار اللون
+        // حدث يتم إطلاقه عند النقر على مجسم الـ 3D لاختيار اللون مؤقتًا
+        public event Action<byte, byte, byte>? ColorClickedFrom3D;
+        // حدث يتم إطلاقه عند النقر المزدوج على مجسم الـ 3D لتثبيت اللون
         public event Action<byte, byte, byte> ColorSelectedFrom3D;
         public event Action<byte, byte, byte>? ColorHoveredFrom3D;
 
@@ -45,6 +48,64 @@ namespace PixelLab.Controls
 
             BuildSpace("RGB");
             CreateMarker();
+        }
+
+        // Show a cone representing HSV distribution for a picked pixel
+        public void ShowHsvCone(byte r, byte g, byte b)
+        {
+            if (currentMode.ToUpper() != "HSV")
+                return;
+
+            ClearCone();
+            RgbToHsv(r, g, b, out double h, out double s, out double v);
+
+            // Cone axis from y = v-0.5 (apex) down to y = -0.5 (base), base radius proportional to saturation
+            var apex = new Point3D(0, v - 0.5, 0);
+            var baseCenter = new Point3D(0, -0.5, 0);
+            double baseRadius = s * 0.5;
+            int segments = 48;
+
+            var mb = new MeshBuilder(true, true);
+            // build circular base points and triangles to apex
+            Point3D[] basePts = new Point3D[segments];
+            for (int i = 0; i < segments; i++)
+            {
+                double angle = 2 * Math.PI * i / segments;
+                double x = baseRadius * Math.Cos(angle);
+                double z = baseRadius * Math.Sin(angle);
+                basePts[i] = new Point3D(x, baseCenter.Y, z);
+            }
+
+            // Add side triangles
+            for (int i = 0; i < segments; i++)
+            {
+                var a = basePts[i];
+                var bpt = basePts[(i + 1) % segments];
+                mb.AddTriangle(apex, a, bpt);
+            }
+            // Add base cap (triangulate manually)
+            for (int i = 0; i < segments; i++)
+            {
+                var a = basePts[i];
+                var bpt = basePts[(i + 1) % segments];
+                mb.AddTriangle(baseCenter, a, bpt);
+            }
+
+            var mesh = mb.ToMesh(true);
+            byte rr = r; byte gg = g; byte bb = b;
+            var brush = new SolidColorBrush(Color.FromArgb(120, rr, gg, bb));
+            var mat = new DiffuseMaterial(brush);
+            coneModel = new GeometryModel3D(mesh, mat) { BackMaterial = mat };
+            spaceGroup.Children.Add(coneModel);
+        }
+
+        public void ClearCone()
+        {
+            if (coneModel != null && spaceGroup.Children.Contains(coneModel))
+            {
+                spaceGroup.Children.Remove(coneModel);
+                coneModel = null;
+            }
         }
 
         public void SetColorMode(string mode)
@@ -272,8 +333,17 @@ namespace PixelLab.Controls
 
         private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && e.ClickCount == 2
-                && TryPickColorAt(e.GetPosition(viewport), out byte r, out byte g, out byte b))
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            if (!TryPickColorAt(e.GetPosition(viewport), out byte r, out byte g, out byte b))
+                return;
+
+            if (e.ClickCount == 1)
+            {
+                ColorClickedFrom3D?.Invoke(r, g, b);
+            }
+            else if (e.ClickCount == 2)
             {
                 MoveMarkerToRgb(r, g, b);
                 ColorSelectedFrom3D?.Invoke(r, g, b);
