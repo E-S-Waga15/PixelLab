@@ -74,6 +74,7 @@ namespace PixelLab
             trackC4.ValueChanged += ApplySelectedColorMode;
 
             pictureBox1.MouseClick += PictureBox1_MouseClick;
+            pictureBox1.MouseDoubleClick += PictureBox1_MouseDoubleClick;
             pictureBox1.MouseDown += pictureBox1_MouseDown;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
 
@@ -719,6 +720,22 @@ namespace PixelLab
             UpdateColorInfoLabel(color);
         }
 
+        private void PictureBox1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (editedImage == null) return;
+
+            int imageX = e.X * editedImage.Width / pictureBox1.Width;
+            int imageY = e.Y * editedImage.Height / pictureBox1.Height;
+
+            if (imageX < 0 || imageX >= editedImage.Width || imageY < 0 || imageY >= editedImage.Height)
+                return;
+
+            Color color = editedImage.GetPixel(imageX, imageY);
+            isColorSelectionLocked = true;
+            UpdateColorInfoLabel(color, "الصورة", imageX, imageY);
+            colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
+        }
+
         private void UpdateColorInfoLabel(Color color, string source = "", int? pixelX = null, int? pixelY = null)
         {
             string header = string.IsNullOrEmpty(source) ? "" : $"{source}\r\n";
@@ -1103,7 +1120,7 @@ namespace PixelLab
         private void ColorSpaceControl_ColorSelectedFrom3D(byte r, byte g, byte b)
         {
             isColorSelectionLocked = true;
-            SynchronizeAndDisplaySystemInfo(r, g, b);
+            UpdateColorInfoLabel(Color.FromArgb(r, g, b), "Color Space_3D");
             // If HSV mode, show cone representing local HSV distribution
             if (cmbColorMode.SelectedItem?.ToString() == "HSV")
             {
@@ -1113,7 +1130,6 @@ namespace PixelLab
             {
                 colorSpace3D?.ClearCone();
             }
-            ApplySelectedColorMode(null, EventArgs.Empty);
         }
 
         private void ColorSpaceControl_ColorHoveredFrom3D(byte r, byte g, byte b)
@@ -1204,9 +1220,8 @@ namespace PixelLab
 
                 Color color = bmp.GetPixel(x, y);
                 isColorSelectionLocked = true;
-                SynchronizeAndDisplaySystemInfo(color.R, color.G, color.B);
+                UpdateColorInfoLabel(color, "Color Space_2D", x, y);
                 colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
-                ApplySelectedColorMode(null, EventArgs.Empty);
             }
         }
     }
