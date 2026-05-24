@@ -407,7 +407,8 @@ namespace PixelLab
             int spaceH = (int)(h * 0.40);
             int spaceH2 = (int)(h * 0.25);
 
-            panelSpaceView.SetBounds(pad, pad, w - pad * 2, spaceH);
+            // لا تغيّر حجم panelSpaceView - استخدم القيم من Designer
+            // panelSpaceView.SetBounds(pad, pad, w - pad * 2, spaceH);
 
             // تعيين الحجم والموضع للعرض الثاني
             if (pictureBoxSpace2 != null && elementHost2 != null)
@@ -425,8 +426,8 @@ namespace PixelLab
             const int lblW = 30;
             const int lblH = 36;
             const int valW = 20;
-            const int chkW = 44;
-            int trackW = w - pad * 2 - lblW - valW - chkW - 16;
+            const int chkW = 70;
+            int trackW = w - pad * 2 - lblW - valW - chkW - 126;
 
             LayoutChannelRow(lblC1, trackC1, lblV1, chkC1, pad, rowY, lblW, lblH, trackW, valW, chkW);
             LayoutChannelRow(lblC2, trackC2, lblV2, chkC2, pad, rowY + rowH, lblW, lblH, trackW, valW, chkW);

@@ -171,74 +171,74 @@
 
             // --- channel labels & tracks ---
             lblC1.AutoSize = false;
-            lblC1.Location = new Point(12, 48);
+            lblC1.Location = new Point(12, 290);
             lblC1.Name = "lblC1";
             lblC1.Text = "R";
             lblC2.AutoSize = false;
-            lblC2.Location = new Point(12, 108);
+            lblC2.Location = new Point(12, 350);
             lblC2.Name = "lblC2";
             lblC2.Text = "G";
             lblC3.AutoSize = false;
-            lblC3.Location = new Point(12, 168);
+            lblC3.Location = new Point(12, 410);
             lblC3.Name = "lblC3";
             lblC3.Text = "B";
             lblC4.AutoSize = false;
-            lblC4.Location = new Point(12, 228);
+            lblC4.Location = new Point(12, 470);
             lblC4.Name = "lblC4";
             lblC4.Text = "K";
 
-            trackC1.Location = new Point(42, 40);
+            trackC1.Location = new Point(42, 282);
             trackC1.Maximum = 255;
             trackC1.Name = "trackC1";
-            trackC1.Size = new Size(170, 28);
+            trackC1.Size = new Size(50, 28);
             trackC1.TabIndex = 11;
-            trackC2.Location = new Point(42, 100);
+            trackC2.Location = new Point(42, 342);
             trackC2.Maximum = 255;
             trackC2.Name = "trackC2";
-            trackC2.Size = new Size(170, 28);
+            trackC2.Size = new Size(50, 28);
             trackC2.TabIndex = 12;
-            trackC3.Location = new Point(42, 160);
+            trackC3.Location = new Point(42, 402);
             trackC3.Maximum = 255;
             trackC3.Name = "trackC3";
-            trackC3.Size = new Size(170, 28);
+            trackC3.Size = new Size(50, 28);
             trackC3.TabIndex = 13;
-            trackC4.Location = new Point(42, 220);
+            trackC4.Location = new Point(42, 462);
             trackC4.Maximum = 255;
             trackC4.Name = "trackC4";
-            trackC4.Size = new Size(170, 28);
+            trackC4.Size = new Size(50, 28);
             trackC4.TabIndex = 14;
 
             lblV1.AutoSize = true;
-            lblV1.Location = new Point(218, 48);
+            lblV1.Location = new Point(148, 290);
             lblV1.Name = "lblV1";
             lblV1.Text = "0";
             lblV2.AutoSize = true;
-            lblV2.Location = new Point(218, 108);
+            lblV2.Location = new Point(148, 350);
             lblV2.Name = "lblV2";
             lblV2.Text = "0";
             lblV3.AutoSize = true;
-            lblV3.Location = new Point(218, 168);
+            lblV3.Location = new Point(148, 410);
             lblV3.Name = "lblV3";
             lblV3.Text = "0";
             lblV4.AutoSize = true;
-            lblV4.Location = new Point(218, 228);
+            lblV4.Location = new Point(148, 470);
             lblV4.Name = "lblV4";
             lblV4.Text = "0";
 
             chkC1.AutoSize = true;
-            chkC1.Location = new Point(248, 44);
+            chkC1.Location = new Point(100, 286);
             chkC1.Name = "chkC1";
             chkC1.Text = "On";
             chkC2.AutoSize = true;
-            chkC2.Location = new Point(248, 104);
+            chkC2.Location = new Point(100, 346);
             chkC2.Name = "chkC2";
             chkC2.Text = "On";
             chkC3.AutoSize = true;
-            chkC3.Location = new Point(248, 164);
+            chkC3.Location = new Point(100, 406);
             chkC3.Name = "chkC3";
             chkC3.Text = "On";
             chkC4.AutoSize = true;
-            chkC4.Location = new Point(248, 224);
+            chkC4.Location = new Point(100, 466);
             chkC4.Name = "chkC4";
             chkC4.Text = "On";
 
@@ -393,7 +393,7 @@
             panelCenter.BackColor = UiTheme.Background;
             panelCenter.Location = new Point(272, 12);
             panelCenter.Name = "panelCenter";
-            panelCenter.Size = new Size(620, 676);
+            panelCenter.Size = new Size(480, 676);
             panelCenter.Controls.Add(panelToolbar);
             panelCenter.Controls.Add(panelWorkspace);
             panelCenter.Controls.Add(panelColorOverlay);
@@ -431,9 +431,9 @@
             panelColorOverlay.Controls.Add(chkQuantizeEnable);
 
             panelRight.CornerRadius = 14;
-            panelRight.Location = new Point(902, 12);
+            panelRight.Location = new Point(760, 12);
             panelRight.Name = "panelRight";
-            panelRight.Size = new Size(286, 676);
+            panelRight.Size = new Size(430, 676);
             panelRight.Controls.Add(panelSpaceView);
             panelRight.Controls.Add(lblChannelsTitle);
             panelRight.Controls.Add(lblC1);
@@ -457,13 +457,13 @@
             panelSpaceView.StrongGlow = true;
             panelSpaceView.Location = new Point(10, 12);
             panelSpaceView.Name = "panelSpaceView";
-            panelSpaceView.Size = new Size(266, 340);
+            panelSpaceView.Size = new Size(250, 250);
             panelSpaceView.Controls.Add(pictureBoxSpace);
             panelSpaceView.Controls.Add(elementHost);
 
             lblChannelsTitle.AutoSize = true;
             lblChannelsTitle.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            lblChannelsTitle.Location = new Point(12, 368);
+            lblChannelsTitle.Location = new Point(12, 270);
             lblChannelsTitle.Name = "lblChannelsTitle";
             lblChannelsTitle.Text = "COLOR CHANNELS";
 
