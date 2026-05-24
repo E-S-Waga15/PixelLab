@@ -4,9 +4,27 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Drawing.Imaging;
+using System.Collections.Generic;
 
 namespace PixelLab
 {
+    // بنية لتخزين نقطة في الفضاء اللوني ثلاثي الأبعاد
+    public struct PixelPoint
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
+        public Color DrawColor { get; set; }
+
+        public PixelPoint(float x, float y, float z, Color color)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            DrawColor = color;
+        }
+    }
+
     public partial class Form1 : Form
     {
         private Bitmap originalImage;
@@ -17,6 +35,24 @@ namespace PixelLab
         private bool isUpdatingControls = false;
         private bool isColorSelectionLocked = false;
         private PixelLab.Controls.ColorSpace3DControl colorSpace3D;
+
+        // متغيرات الحالة الرياضية للعرض ثلاثي الأبعاد
+        private float customYaw = 30f;
+        private float customPitch = -25f;
+        private float customZoom = 180f;
+        private List<PixelPoint> customVisualPoints = new List<PixelPoint>();
+        private Point lastMousePos = Point.Empty;
+        private bool isDraggingRotation = false;
+
+        // متغيرات الحالة للعرض الثاني (Visualization 2)
+        private PictureBox? pictureBoxSpace2;
+        private System.Windows.Forms.Integration.ElementHost? elementHost2;
+        private float customYaw2 = 30f;
+        private float customPitch2 = -25f;
+        private float customZoom2 = 180f;
+        private List<PixelPoint> customVisualPoints2 = new List<PixelPoint>();
+        private Point lastMousePos2 = Point.Empty;
+        private bool isDraggingRotation2 = false;
 
         public Form1()
         {
@@ -105,6 +141,9 @@ namespace PixelLab
             pictureBoxSpace.MouseDoubleClick += PictureBoxSpace_MouseDoubleClick;
             pictureBoxSpace.MouseMove += PictureBoxSpace_MouseMove;
 
+            // إنشاء العناصر الثانية (Visualization 2)
+            InitializeSecondVisualization();
+
             // تفعيل القنوات افتراضياً
             chkC1.Checked = true;
             chkC2.Checked = true;
@@ -114,6 +153,50 @@ namespace PixelLab
             cmbColorMode.SelectedIndex = 0;
             Resize += Form1_Resize;
             Form1_Resize(this, EventArgs.Empty);
+        }
+
+        private void InitializeSecondVisualization()
+        {
+            // إنشاء PictureBox الثاني
+            pictureBoxSpace2 = new PictureBox();
+            pictureBoxSpace2.Name = "pictureBoxSpace2";
+            pictureBoxSpace2.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBoxSpace2.BackColor = Color.Black;
+            pictureBoxSpace2.MouseDown += PictureBoxSpace2_MouseDown;
+            pictureBoxSpace2.MouseUp += PictureBoxSpace2_MouseUp;
+            pictureBoxSpace2.MouseMove += PictureBoxSpace2_MouseMove;
+            pictureBoxSpace2.MouseWheel += PictureBoxSpace2_MouseWheel;
+            pictureBoxSpace2.Paint += PictureBoxSpace2_Paint;
+
+            // إنشاء ElementHost الثاني
+            elementHost2 = new System.Windows.Forms.Integration.ElementHost();
+            elementHost2.Name = "elementHost2";
+            elementHost2.BackColor = UiTheme.WorkspaceBg;
+
+            // إضافتهما إلى panelRight أسفل panelSpaceView
+            if (panelRight != null)
+            {
+                panelRight.Controls.Add(pictureBoxSpace2);
+                panelRight.Controls.Add(elementHost2);
+                LayoutSecondVisualization();
+            }
+        }
+
+        private void LayoutSecondVisualization()
+        {
+            if (panelRight == null || panelSpaceView == null) return;
+
+            int w = panelRight.ClientSize.Width;
+            int h = panelRight.ClientSize.Height;
+            const int pad = 10;
+
+            // تقسيم المساحة بين العرضين
+            int spaceH = (int)(h * 0.25);
+            int spaceV2Y = panelSpaceView.Bottom + 10;
+
+            // تعيين الحجم والموضع للعرض الثاني
+            pictureBoxSpace2.SetBounds(pad, spaceV2Y, w - pad * 2, spaceH);
+            elementHost2.SetBounds(pad, spaceV2Y, w - pad * 2, spaceH);
         }
 
         private void ApplyGlassTheme()
@@ -287,6 +370,23 @@ namespace PixelLab
 
         private void PictureBoxSpace_MouseMove(object? sender, MouseEventArgs e)
         {
+            // إذا كان يتم السحب للتدوير
+            if (isDraggingRotation)
+            {
+                int deltaX = e.X - lastMousePos.X;
+                int deltaY = e.Y - lastMousePos.Y;
+
+                customYaw += deltaX * 0.5f;
+                customPitch += deltaY * 0.5f;
+
+                // تقيد الزوايا
+                customPitch = Math.Max(-90, Math.Min(90, customPitch));
+
+                lastMousePos = e.Location;
+                pictureBoxSpace.Invalidate();
+                return;
+            }
+
             if (isColorSelectionLocked) return;
 
             if (pictureBoxSpace.Image == null) return;
@@ -304,10 +404,20 @@ namespace PixelLab
             int w = panelRight.ClientSize.Width;
             int h = panelRight.ClientSize.Height;
             const int pad = 10;
-            int spaceH = (int)(h * 0.52);
+            int spaceH = (int)(h * 0.40);
+            int spaceH2 = (int)(h * 0.25);
+
             panelSpaceView.SetBounds(pad, pad, w - pad * 2, spaceH);
 
-            int titleY = panelSpaceView.Bottom + 10;
+            // تعيين الحجم والموضع للعرض الثاني
+            if (pictureBoxSpace2 != null && elementHost2 != null)
+            {
+                int spaceV2Y = panelSpaceView.Bottom + 10;
+                pictureBoxSpace2.SetBounds(pad, spaceV2Y, w - pad * 2, spaceH2);
+                elementHost2.SetBounds(pad, spaceV2Y, w - pad * 2, spaceH2);
+            }
+
+            int titleY = panelSpaceView.Bottom + (pictureBoxSpace2 != null ? spaceH2 + 20 : 10);
             lblChannelsTitle.SetBounds(pad, titleY, w - pad * 2, 22);
 
             int rowY = titleY + 28;
@@ -353,6 +463,10 @@ namespace PixelLab
             currentImagePath = path;
             pictureBox1.Image = editedImage;
             ResetTracks();
+            GenerateCustomColorSpacePoints();
+            GenerateCustomColorSpacePoints2();
+            pictureBoxSpace.Invalidate();
+            pictureBoxSpace2?.Invalidate();
             UpdateImageInfo(); // update the properties panel after loading
         }
 
@@ -513,6 +627,10 @@ namespace PixelLab
 
             ApplySelectedColorMode(null, null);
             DrawColorSpace(mode);
+            GenerateCustomColorSpacePoints();
+            GenerateCustomColorSpacePoints2();
+            pictureBoxSpace.Invalidate();
+            pictureBoxSpace2?.Invalidate();
 
             // تحديث العرض ثلاثي الأبعاد مباشرة عند تغيير النظام اللوني إن كان فعالاً
             if (elementHost != null && elementHost.Visible && colorSpace3D != null)
@@ -1222,6 +1340,503 @@ namespace PixelLab
                 isColorSelectionLocked = true;
                 UpdateColorInfoLabel(color, "Color Space_2D", x, y);
                 colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
+            }
+        }
+
+        // ===== معالجات الماوس والرسم للفضاء اللوني ثلاثي الأبعاد GDI+ =====
+
+        private void PictureBoxSpace_MouseDown(object sender, MouseEventArgs e)
+        {
+            isDraggingRotation = true;
+            lastMousePos = e.Location;
+        }
+
+        private void PictureBoxSpace_MouseUp(object sender, MouseEventArgs e)
+        {
+            isDraggingRotation = false;
+        }
+
+        private void PictureBoxSpace_MouseWheel(object sender, MouseEventArgs e)
+        {
+            customZoom += e.Delta > 0 ? 10 : -10;
+            customZoom = Math.Max(50, Math.Min(300, customZoom));
+            pictureBoxSpace.Invalidate();
+        }
+
+        private void PictureBoxSpace_Paint(object sender, PaintEventArgs e)
+        {
+            if (customVisualPoints.Count == 0)
+            {
+                e.Graphics.Clear(Color.Black);
+                e.Graphics.DrawString("عرّض صورة أولاً", Font, Brushes.White, 10, 10);
+                return;
+            }
+
+            e.Graphics.Clear(Color.Black);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int width = pictureBoxSpace.Width;
+            int height = pictureBoxSpace.Height;
+            int centerX = width / 2;
+            int centerY = height / 2;
+
+            // رسم المحاور
+            DrawAxes3D(e.Graphics, centerX, centerY);
+
+            // رسم النقاط
+            DrawColorPoints(e.Graphics, centerX, centerY);
+        }
+
+        private void DrawAxes3D(Graphics g, int centerX, int centerY)
+        {
+            float scale = customZoom / 100f;
+
+            // تحويل درجات إلى راديان
+            float yawRad = customYaw * (float)Math.PI / 180f;
+            float pitchRad = customPitch * (float)Math.PI / 180f;
+
+            // نقاط المحاور
+            var origin = new Point3D(0, 0, 0);
+            var xAxis = new Point3D(0.5f, 0, 0);
+            var yAxis = new Point3D(0, 0.5f, 0);
+            var zAxis = new Point3D(0, 0, 0.5f);
+
+            var p0 = Project3DTo2D(origin, centerX, centerY, yawRad, pitchRad, scale);
+            var px = Project3DTo2D(xAxis, centerX, centerY, yawRad, pitchRad, scale);
+            var py = Project3DTo2D(yAxis, centerX, centerY, yawRad, pitchRad, scale);
+            var pz = Project3DTo2D(zAxis, centerX, centerY, yawRad, pitchRad, scale);
+
+            using (var penX = new Pen(Color.Red, 2))
+            using (var penY = new Pen(Color.Green, 2))
+            using (var penZ = new Pen(Color.Blue, 2))
+            {
+                g.DrawLine(penX, p0, px);
+                g.DrawLine(penY, p0, py);
+                g.DrawLine(penZ, p0, pz);
+            }
+
+            // تسميات المحاور
+            var labelMode = cmbColorMode?.SelectedItem?.ToString() ?? "RGB";
+            string[] labels = labelMode switch
+            {
+                "HSV" => new[] { "H", "S", "V" },
+                "CMYK" => new[] { "C", "M", "Y" },
+                "YUV" => new[] { "Y", "U", "V" },
+                "LAB" => new[] { "L", "a", "b" },
+                "YCbCr" => new[] { "Y", "Cb", "Cr" },
+                _ => new[] { "R", "G", "B" }
+            };
+
+            using (var brush = new SolidBrush(Color.White))
+            {
+                g.DrawString(labels[0], Font, brush, px.X + 5, px.Y);
+                g.DrawString(labels[1], Font, brush, py.X + 5, py.Y);
+                g.DrawString(labels[2], Font, brush, pz.X + 5, pz.Y);
+            }
+        }
+
+        private void DrawColorPoints(Graphics g, int centerX, int centerY)
+        {
+            float scale = customZoom / 100f;
+            float yawRad = customYaw * (float)Math.PI / 180f;
+            float pitchRad = customPitch * (float)Math.PI / 180f;
+
+            foreach (var point in customVisualPoints)
+            {
+                var p3d = new Point3D(point.X, point.Y, point.Z);
+                var p2d = Project3DTo2D(p3d, centerX, centerY, yawRad, pitchRad, scale);
+
+                if (p2d.X >= 0 && p2d.X < pictureBoxSpace.Width && p2d.Y >= 0 && p2d.Y < pictureBoxSpace.Height)
+                {
+                    using (var brush = new SolidBrush(point.DrawColor))
+                    {
+                        g.FillEllipse(brush, p2d.X - 2, p2d.Y - 2, 4, 4);
+                    }
+                }
+            }
+        }
+
+        private Point Project3DTo2D(Point3D p, int centerX, int centerY, float yaw, float pitch, float scale)
+        {
+            // تطبيق التدوير
+            float cosYaw = (float)Math.Cos(yaw);
+            float sinYaw = (float)Math.Sin(yaw);
+            float cosPitch = (float)Math.Cos(pitch);
+            float sinPitch = (float)Math.Sin(pitch);
+
+            float x = p.X;
+            float y = p.Y;
+            float z = p.Z;
+
+            // تدوير حول محور Y (Yaw)
+            float x1 = x * cosYaw - z * sinYaw;
+            float z1 = x * sinYaw + z * cosYaw;
+
+            // تدوير حول محور X (Pitch)
+            float y2 = y * cosPitch - z1 * sinPitch;
+            float z2 = y * sinPitch + z1 * cosPitch;
+
+            // الإسقاط المنظوري (Perspective projection)
+            float distance = 2.5f;
+            float perspective = distance / (distance + z2 * 0.5f);
+            float screenX = x1 * perspective * scale * 100;
+            float screenY = y2 * perspective * scale * 100;
+
+            return new Point((int)(centerX + screenX), (int)(centerY - screenY));
+        }
+
+        private void GenerateCustomColorSpacePoints()
+        {
+            if (editedImage == null)
+            {
+                customVisualPoints.Clear();
+                return;
+            }
+
+            customVisualPoints.Clear();
+            string colorMode = cmbColorMode?.SelectedItem?.ToString() ?? "RGB";
+
+            // أخذ عينة من البكسلات (كل 15 بكسل للأداء)
+            int stride = Math.Max(1, editedImage.Width / 20);
+            for (int y = 0; y < editedImage.Height; y += stride)
+            {
+                for (int x = 0; x < editedImage.Width; x += stride)
+                {
+                    Color pixelColor = editedImage.GetPixel(x, y);
+                    float px = 0, py = 0, pz = 0;
+
+                    switch (colorMode)
+                    {
+                        case "HSV":
+                            RgbToHsvNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            px = (float)(px % 360) / 360f; // تطبيع Hue
+                            break;
+                        case "CMYK":
+                            RgbToCmykNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "YUV":
+                            RgbToYuvNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "LAB":
+                            RgbToLabNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "YCbCr":
+                            RgbToYCbCrNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        default: // RGB
+                            px = pixelColor.R / 255f;
+                            py = pixelColor.G / 255f;
+                            pz = pixelColor.B / 255f;
+                            break;
+                    }
+
+                    customVisualPoints.Add(new PixelPoint(px, py, pz, pixelColor));
+                }
+            }
+        }
+
+        private void RgbToHsvNormalized(int r, int g, int b, out float h, out float s, out float v)
+        {
+            float rf = r / 255f, gf = g / 255f, bf = b / 255f;
+            float max = Math.Max(rf, Math.Max(gf, bf));
+            float min = Math.Min(rf, Math.Min(gf, bf));
+            float delta = max - min;
+
+            h = 0;
+            if (delta != 0)
+            {
+                if (max == rf) h = 60 * (((gf - bf) / delta) % 6);
+                else if (max == gf) h = 60 * (((bf - rf) / delta) + 2);
+                else h = 60 * (((rf - gf) / delta) + 4);
+            }
+            if (h < 0) h += 360;
+
+            s = max == 0 ? 0 : delta / max;
+            v = max;
+        }
+
+        private void RgbToCmykNormalized(int r, int g, int b, out float c, out float m, out float y)
+        {
+            float rf = r / 255f, gf = g / 255f, bf = b / 255f;
+            float k = 1 - Math.Max(rf, Math.Max(gf, bf));
+
+            c = (1 - rf - k) / (1 - k);
+            m = (1 - gf - k) / (1 - k);
+            y = (1 - bf - k) / (1 - k);
+
+            c = Math.Max(0, Math.Min(1, c));
+            m = Math.Max(0, Math.Min(1, m));
+            y = Math.Max(0, Math.Min(1, y));
+        }
+
+        private void RgbToYuvNormalized(int r, int g, int b, out float y, out float u, out float v)
+        {
+            float rf = r / 255f, gf = g / 255f, bf = b / 255f;
+            y = 0.299f * rf + 0.587f * gf + 0.114f * bf;
+            u = (bf - y) / 1.772f + 0.5f;
+            v = (rf - y) / 1.402f + 0.5f;
+
+            y = Math.Max(0, Math.Min(1, y));
+            u = Math.Max(0, Math.Min(1, u));
+            v = Math.Max(0, Math.Min(1, v));
+        }
+
+        private void RgbToLabNormalized(int r, int g, int b, out float l, out float a, out float lab_b)
+        {
+            float rf = r / 255f, gf = g / 255f, bf = b / 255f;
+
+            // تحويل إلى XYZ أولاً
+            rf = rf > 0.04045f ? (float)Math.Pow((rf + 0.055f) / 1.055f, 2.4f) : rf / 12.92f;
+            gf = gf > 0.04045f ? (float)Math.Pow((gf + 0.055f) / 1.055f, 2.4f) : gf / 12.92f;
+            bf = bf > 0.04045f ? (float)Math.Pow((bf + 0.055f) / 1.055f, 2.4f) : bf / 12.92f;
+
+            float x = rf * 0.4124f + gf * 0.3576f + bf * 0.1805f;
+            float y_temp = rf * 0.2126f + gf * 0.7152f + bf * 0.0722f;
+            float z = rf * 0.0193f + gf * 0.1192f + bf * 0.9505f;
+
+            // تطبيع بواسطة D65
+            x = x / 0.95047f;
+            y_temp = y_temp / 1.00000f;
+            z = z / 1.08883f;
+
+            float fx = x > 0.008856f ? (float)Math.Pow(x, 1 / 3f) : (7.787f * x) + (16 / 116f);
+            float fy = y_temp > 0.008856f ? (float)Math.Pow(y_temp, 1 / 3f) : (7.787f * y_temp) + (16 / 116f);
+            float fz = z > 0.008856f ? (float)Math.Pow(z, 1 / 3f) : (7.787f * z) + (16 / 116f);
+
+            l = (116 * fy) - 16;
+            a = 500 * (fx - fy);
+            lab_b = 200 * (fy - fz);
+
+            l = Math.Max(0, Math.Min(100, l)) / 100f;
+            a = (a + 128) / 256f;
+            lab_b = (lab_b + 128) / 256f;
+        }
+
+        private void RgbToYCbCrNormalized(int r, int g, int b, out float y, out float cb, out float cr)
+        {
+            y = 0.299f * r + 0.587f * g + 0.114f * b;
+            cb = 128 - 0.168736f * r - 0.331264f * g + 0.5f * b;
+            cr = 128 + 0.5f * r - 0.418688f * g - 0.081312f * b;
+
+            y = Math.Max(0, Math.Min(255, y)) / 255f;
+            cb = Math.Max(0, Math.Min(255, cb)) / 255f;
+            cr = Math.Max(0, Math.Min(255, cr)) / 255f;
+        }
+
+        private class Point3D
+        {
+            public float X, Y, Z;
+
+            public Point3D(float x, float y, float z)
+            {
+                X = x;
+                Y = y;
+                Z = z;
+            }
+        }
+
+        // ===== معالجات العرض الثاني (Visualization 2) =====
+
+        private void PictureBoxSpace2_MouseDown(object? sender, MouseEventArgs e)
+        {
+            isDraggingRotation2 = true;
+            lastMousePos2 = e.Location;
+        }
+
+        private void PictureBoxSpace2_MouseUp(object? sender, MouseEventArgs e)
+        {
+            isDraggingRotation2 = false;
+        }
+
+        private void PictureBoxSpace2_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (isDraggingRotation2)
+            {
+                int deltaX = e.X - lastMousePos2.X;
+                int deltaY = e.Y - lastMousePos2.Y;
+
+                customYaw2 += deltaX * 0.5f;
+                customPitch2 += deltaY * 0.5f;
+
+                customPitch2 = Math.Max(-90, Math.Min(90, customPitch2));
+
+                lastMousePos2 = e.Location;
+                pictureBoxSpace2?.Invalidate();
+            }
+        }
+
+        private void PictureBoxSpace2_MouseWheel(object? sender, MouseEventArgs e)
+        {
+            customZoom2 += e.Delta > 0 ? 10 : -10;
+            customZoom2 = Math.Max(50, Math.Min(300, customZoom2));
+            pictureBoxSpace2?.Invalidate();
+        }
+
+        private void PictureBoxSpace2_Paint(object? sender, PaintEventArgs e)
+        {
+            if (customVisualPoints2.Count == 0)
+            {
+                e.Graphics.Clear(Color.Black);
+                e.Graphics.DrawString("عرّض صورة أولاً", Font, Brushes.White, 10, 10);
+                return;
+            }
+
+            e.Graphics.Clear(Color.Black);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int width = pictureBoxSpace2?.Width ?? 100;
+            int height = pictureBoxSpace2?.Height ?? 100;
+            int centerX = width / 2;
+            int centerY = height / 2;
+
+            // رسم المحاور
+            DrawAxes3D2(e.Graphics, centerX, centerY);
+
+            // رسم النقاط
+            DrawColorPoints2(e.Graphics, centerX, centerY);
+        }
+
+        private void DrawAxes3D2(Graphics g, int centerX, int centerY)
+        {
+            float scale = customZoom2 / 100f;
+
+            float yawRad = customYaw2 * (float)Math.PI / 180f;
+            float pitchRad = customPitch2 * (float)Math.PI / 180f;
+
+            var origin = new Point3D(0, 0, 0);
+            var xAxis = new Point3D(0.5f, 0, 0);
+            var yAxis = new Point3D(0, 0.5f, 0);
+            var zAxis = new Point3D(0, 0, 0.5f);
+
+            var p0 = Project3DTo2D2(origin, centerX, centerY, yawRad, pitchRad, scale);
+            var px = Project3DTo2D2(xAxis, centerX, centerY, yawRad, pitchRad, scale);
+            var py = Project3DTo2D2(yAxis, centerX, centerY, yawRad, pitchRad, scale);
+            var pz = Project3DTo2D2(zAxis, centerX, centerY, yawRad, pitchRad, scale);
+
+            using (var penX = new Pen(Color.Red, 2))
+            using (var penY = new Pen(Color.Green, 2))
+            using (var penZ = new Pen(Color.Blue, 2))
+            {
+                g.DrawLine(penX, p0, px);
+                g.DrawLine(penY, p0, py);
+                g.DrawLine(penZ, p0, pz);
+            }
+
+            var labelMode = cmbColorMode?.SelectedItem?.ToString() ?? "RGB";
+            string[] labels = labelMode switch
+            {
+                "HSV" => new[] { "H", "S", "V" },
+                "CMYK" => new[] { "C", "M", "Y" },
+                "YUV" => new[] { "Y", "U", "V" },
+                "LAB" => new[] { "L", "a", "b" },
+                "YCbCr" => new[] { "Y", "Cb", "Cr" },
+                _ => new[] { "R", "G", "B" }
+            };
+
+            using (var brush = new SolidBrush(Color.White))
+            {
+                g.DrawString(labels[0], Font, brush, px.X + 5, px.Y);
+                g.DrawString(labels[1], Font, brush, py.X + 5, py.Y);
+                g.DrawString(labels[2], Font, brush, pz.X + 5, pz.Y);
+            }
+        }
+
+        private void DrawColorPoints2(Graphics g, int centerX, int centerY)
+        {
+            float scale = customZoom2 / 100f;
+            float yawRad = customYaw2 * (float)Math.PI / 180f;
+            float pitchRad = customPitch2 * (float)Math.PI / 180f;
+
+            int width = pictureBoxSpace2?.Width ?? 100;
+            int height = pictureBoxSpace2?.Height ?? 100;
+
+            foreach (var point in customVisualPoints2)
+            {
+                var p3d = new Point3D(point.X, point.Y, point.Z);
+                var p2d = Project3DTo2D2(p3d, centerX, centerY, yawRad, pitchRad, scale);
+
+                if (p2d.X >= 0 && p2d.X < width && p2d.Y >= 0 && p2d.Y < height)
+                {
+                    using (var brush = new SolidBrush(point.DrawColor))
+                    {
+                        g.FillEllipse(brush, p2d.X - 2, p2d.Y - 2, 4, 4);
+                    }
+                }
+            }
+        }
+
+        private Point Project3DTo2D2(Point3D p, int centerX, int centerY, float yaw, float pitch, float scale)
+        {
+            float cosYaw = (float)Math.Cos(yaw);
+            float sinYaw = (float)Math.Sin(yaw);
+            float cosPitch = (float)Math.Cos(pitch);
+            float sinPitch = (float)Math.Sin(pitch);
+
+            float x = p.X;
+            float y = p.Y;
+            float z = p.Z;
+
+            float x1 = x * cosYaw - z * sinYaw;
+            float z1 = x * sinYaw + z * cosYaw;
+
+            float y2 = y * cosPitch - z1 * sinPitch;
+            float z2 = y * sinPitch + z1 * cosPitch;
+
+            float distance = 2.5f;
+            float perspective = distance / (distance + z2 * 0.5f);
+            float screenX = x1 * perspective * scale * 100;
+            float screenY = y2 * perspective * scale * 100;
+
+            return new Point((int)(centerX + screenX), (int)(centerY - screenY));
+        }
+
+        private void GenerateCustomColorSpacePoints2()
+        {
+            if (editedImage == null)
+            {
+                customVisualPoints2.Clear();
+                return;
+            }
+
+            customVisualPoints2.Clear();
+            string colorMode = cmbColorMode?.SelectedItem?.ToString() ?? "RGB";
+
+            // نفس العملية كالـ customVisualPoints
+            int stride = Math.Max(1, editedImage.Width / 20);
+            for (int y = 0; y < editedImage.Height; y += stride)
+            {
+                for (int x = 0; x < editedImage.Width; x += stride)
+                {
+                    Color pixelColor = editedImage.GetPixel(x, y);
+                    float px = 0, py = 0, pz = 0;
+
+                    switch (colorMode)
+                    {
+                        case "HSV":
+                            RgbToHsvNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            px = (float)(px % 360) / 360f;
+                            break;
+                        case "CMYK":
+                            RgbToCmykNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "YUV":
+                            RgbToYuvNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "LAB":
+                            RgbToLabNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        case "YCbCr":
+                            RgbToYCbCrNormalized(pixelColor.R, pixelColor.G, pixelColor.B, out px, out py, out pz);
+                            break;
+                        default:
+                            px = pixelColor.R / 255f;
+                            py = pixelColor.G / 255f;
+                            pz = pixelColor.B / 255f;
+                            break;
+                    }
+
+                    customVisualPoints2.Add(new PixelPoint(px, py, pz, pixelColor));
+                }
             }
         }
     }
