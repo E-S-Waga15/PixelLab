@@ -133,6 +133,9 @@ namespace PixelLab
             chkC3.CheckedChanged += ApplySelectedColorMode;
             chkC4.CheckedChanged += ApplySelectedColorMode;
 
+            // make zoom range wider and rotation full circle for more control
+            trackZoom.Minimum = 50; trackZoom.Maximum = 300; trackZoom.Value = 180;
+            trackRotate.Minimum = -180; trackRotate.Maximum = 180; trackRotate.Value = 0;
             trackZoom.ValueChanged += UpdateColorSpaceView;
             trackRotate.ValueChanged += UpdateColorSpaceView;
             trackRotate.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
@@ -557,6 +560,12 @@ namespace PixelLab
 
             // 3. Update image info display
             UpdateImageInfo();
+
+            // 4. Regenerate both visualizations so Visualization 2 (second space) updates in real-time
+            GenerateCustomColorSpacePoints();
+            GenerateCustomColorSpacePoints2();
+            pictureBoxSpace.Invalidate();
+            pictureBoxSpace2?.Invalidate();
         }
         private void btnSave_Click(object sender, EventArgs e)
         {
@@ -749,6 +758,10 @@ namespace PixelLab
             {
                 pictureBox1.Image = editedImage;
             }
+
+            // Update second visualization in real-time when editedImage changes
+            GenerateCustomColorSpacePoints2();
+            pictureBoxSpace2?.Invalidate();
         }
 
         /// <summary>
