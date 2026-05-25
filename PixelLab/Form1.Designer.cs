@@ -270,6 +270,24 @@
             trackZoom.TabIndex = 24;
             trackZoom.Value = 100;
 
+            // --- lblBrightness ---
+            lblBrightness = new Label();
+            lblBrightness.AutoSize = true;
+            lblBrightness.Location = new Point(220, 26);
+            lblBrightness.Name = "lblBrightness";
+            lblBrightness.Text = "Brightness: 0";
+
+            // --- trackBrightness ---
+            trackBrightness = new ModernTrackBar();
+            trackBrightness.Location = new Point(280, 24);
+            trackBrightness.Maximum = 100;
+            trackBrightness.Minimum = -100;
+            trackBrightness.Name = "trackBrightness";
+            trackBrightness.Padding = new Padding(4, 0, 0, 0);
+            trackBrightness.Size = new Size(140, 28);
+            trackBrightness.TabIndex = 26;
+            trackBrightness.Value = 0;
+
             lblRotate.AutoSize = true;
             lblRotate.Location = new Point(290, 16);
             lblRotate.Name = "lblRotate";
@@ -280,6 +298,10 @@
             trackRotate.Name = "trackRotate";
             trackRotate.Size = new Size(110, 28);
             trackRotate.TabIndex = 25;
+
+            // ensure brightness controls are added to toolbar
+            panelToolbar.Controls.Add(lblBrightness);
+            panelToolbar.Controls.Add(trackBrightness);
 
             lblSpaceInfo.AutoSize = true;
             lblSpaceInfo.Location = new Point(-500, -500);
@@ -400,7 +422,7 @@
 
             panelToolbar.CornerRadius = 10;
             panelToolbar.Dock = DockStyle.Top;
-            panelToolbar.Height = 48;
+            panelToolbar.Height = 64;
             panelToolbar.Name = "panelToolbar";
             panelToolbar.Controls.Add(lblZoom);
             panelToolbar.Controls.Add(trackZoom);
@@ -556,5 +578,7 @@
         private Button btnView3D;
         private Label lblZoom;
         private Label lblRotate;
+        private Label lblBrightness;
+        private ModernTrackBar trackBrightness;
     }
 }

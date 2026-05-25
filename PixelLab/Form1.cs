@@ -138,11 +138,27 @@ namespace PixelLab
             trackRotate.Minimum = -180; trackRotate.Maximum = 180; trackRotate.Value = 0;
             trackZoom.ValueChanged += UpdateColorSpaceView;
             trackRotate.ValueChanged += UpdateColorSpaceView;
-            trackRotate.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
-            trackZoom.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(null, null); };
+            trackRotate.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(this, EventArgs.Empty); };
+            trackZoom.ValueChanged += (s, e) => { if (colorSpace3D != null) colorSpace3D.SetCamera(trackZoom.Value, trackRotate.Value); UpdateColorSpaceView(this, EventArgs.Empty); };
             pictureBoxSpace.MouseClick += PictureBoxSpace_MouseClick;
             pictureBoxSpace.MouseDoubleClick += PictureBoxSpace_MouseDoubleClick;
             pictureBoxSpace.MouseMove += PictureBoxSpace_MouseMove;
+
+            // Brightness control wiring (added control in Designer)
+            if (trackBrightness != null)
+            {
+                trackBrightness.Minimum = -100;
+                trackBrightness.Maximum = 100;
+                trackBrightness.Value = 0;
+                trackBrightness.ValueChanged += ApplySelectedColorMode;
+                trackBrightness.ValueChanged += (s, e) => { try { lblBrightness.Text = $"Brightness: {trackBrightness.Value}"; } catch { } };
+            }
+
+            // 3D host double-click commits changes
+            if (elementHost != null)
+            {
+                elementHost.MouseDoubleClick += ElementHost_MouseDoubleClick;
+            }
 
             // إنشاء العناصر الثانية (Visualization 2)
             InitializeSecondVisualization();
@@ -274,13 +290,25 @@ namespace PixelLab
         {
             if (panelToolbar == null) return;
             int w = panelToolbar.ClientSize.Width;
-            const int y = 12;
+            const int pad = 12;
+            const int labelW = 82;
             const int sliderH = 28;
-            lblZoom.SetBounds(12, 14, 82, 22);
-            int mid = w / 2;
-            trackZoom.SetBounds(96, y, mid - 110, sliderH);
-            lblRotate.SetBounds(mid - 8, 14, 88, 22);
-            trackRotate.SetBounds(mid + 82, y, w - mid - 98, sliderH);
+            // Three equal columns: Zoom | Brightness | Rotate
+            int colW = Math.Max(120, (w - pad * 2) / 3);
+            int col1X = pad;
+            int col2X = pad + colW;
+            int col3X = pad + colW * 2;
+
+            int labelY = (panelToolbar.Height - sliderH) / 2 - 2;
+            // Zoom
+            lblZoom.SetBounds(col1X, labelY, labelW, 22);
+            trackZoom.SetBounds(col1X + labelW + 6, labelY, colW - labelW - 16, sliderH);
+            // Brightness
+            lblBrightness.SetBounds(col2X, labelY, labelW, 22);
+            trackBrightness.SetBounds(col2X + labelW + 6, labelY, colW - labelW - 16, sliderH);
+            // Rotate
+            lblRotate.SetBounds(col3X, labelY, labelW, 22);
+            trackRotate.SetBounds(col3X + labelW + 6, labelY, colW - labelW - 16, sliderH);
         }
 
         private void LayoutColorOverlay()
@@ -635,7 +663,7 @@ namespace PixelLab
                     break;
             }
 
-            ApplySelectedColorMode(null, null);
+            ApplySelectedColorMode(this, EventArgs.Empty);
             DrawColorSpace(mode);
             GenerateCustomColorSpacePoints();
             GenerateCustomColorSpacePoints2();
@@ -738,6 +766,18 @@ namespace PixelLab
                 }
             }
 
+            // Apply brightness if the control exists
+            if (trackBrightness != null && trackBrightness.Value != 0)
+            {
+                try
+                {
+                    Bitmap bright = ApplyBrightnessToBitmap(editedImage, trackBrightness.Value);
+                    try { editedImage.Dispose(); } catch { }
+                    editedImage = bright;
+                }
+                catch { }
+            }
+
             // Apply quantization if enabled
             if (chkQuantizeEnable != null && chkQuantizeEnable.Checked && cmbQuantColors != null && cmbQuantColors.SelectedItem != null)
             {
@@ -835,6 +875,36 @@ namespace PixelLab
             System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bd.Scan0, bytes);
             bmp.UnlockBits(bd);
             return bmp;
+        }
+
+        // Apply a brightness offset (-100..100) to a bitmap using LockBits for performance
+        private Bitmap ApplyBrightnessToBitmap(Bitmap src, int brightness)
+        {
+            if (src == null) return null;
+            Bitmap result = new Bitmap(src.Width, src.Height, PixelFormat.Format32bppArgb);
+
+            BitmapData srcData = src.LockBits(new Rectangle(0, 0, src.Width, src.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            BitmapData dstData = result.LockBits(new Rectangle(0, 0, result.Width, result.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+
+            int bytes = Math.Abs(srcData.Stride) * src.Height;
+            byte[] buffer = new byte[bytes];
+            System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, bytes);
+
+            for (int i = 0; i < bytes; i += 4)
+            {
+                int b = buffer[i] + brightness;
+                int g = buffer[i + 1] + brightness;
+                int r = buffer[i + 2] + brightness;
+                buffer[i] = (byte)Math.Max(0, Math.Min(255, b));
+                buffer[i + 1] = (byte)Math.Max(0, Math.Min(255, g));
+                buffer[i + 2] = (byte)Math.Max(0, Math.Min(255, r));
+                // alpha (buffer[i+3]) unchanged
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(buffer, 0, dstData.Scan0, bytes);
+            src.UnlockBits(srcData);
+            result.UnlockBits(dstData);
+            return result;
         }
 
         private void PictureBox1_MouseClick(object sender, MouseEventArgs e)
@@ -1185,7 +1255,7 @@ namespace PixelLab
                     colorSpaceImage.SetPixel(x, y, color);
                 }
             }
-            UpdateColorSpaceView(null, null);
+            UpdateColorSpaceView(this, EventArgs.Empty);
         }
 
         private void UpdateColorSpaceView(object sender, EventArgs e)
@@ -1251,8 +1321,8 @@ namespace PixelLab
 
         private void ColorSpaceControl_ColorSelectedFrom3D(byte r, byte g, byte b)
         {
-            isColorSelectionLocked = true;
-            UpdateColorInfoLabel(Color.FromArgb(r, g, b), "Color Space_3D");
+            SynchronizeAndDisplaySystemInfo(r, g, b);
+            ApplySelectedColorMode(this, EventArgs.Empty);
             // If HSV mode, show cone representing local HSV distribution
             if (cmbColorMode.SelectedItem?.ToString() == "HSV")
             {
@@ -1351,10 +1421,29 @@ namespace PixelLab
                 if (x < 0 || x >= bmp.Width || y < 0 || y >= bmp.Height) return;
 
                 Color color = bmp.GetPixel(x, y);
-                isColorSelectionLocked = true;
-                UpdateColorInfoLabel(color, "Color Space_2D", x, y);
-                colorSpace3D?.MoveMarkerToRgb(color.R, color.G, color.B);
+                SynchronizeAndDisplaySystemInfo(color.R, color.G, color.B);
+                ApplySelectedColorMode(this, EventArgs.Empty);
             }
+        }
+
+        private void ElementHost_MouseDoubleClick(object? sender, MouseEventArgs e)
+        {
+            // When 3D host is double-clicked, commit adjustments similarly
+            try
+            {
+                ApplySelectedColorMode(this, EventArgs.Empty);
+                if (editedImage != null)
+                {
+                    try { originalImage.Dispose(); } catch { }
+                    originalImage = new Bitmap(editedImage);
+                    UpdateImageInfo();
+                    GenerateCustomColorSpacePoints();
+                    GenerateCustomColorSpacePoints2();
+                    pictureBoxSpace.Invalidate();
+                    pictureBoxSpace2?.Invalidate();
+                }
+            }
+            catch { }
         }
 
         // ===== معالجات الماوس والرسم للفضاء اللوني ثلاثي الأبعاد GDI+ =====
